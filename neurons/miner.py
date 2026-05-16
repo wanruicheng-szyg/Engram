@@ -466,11 +466,14 @@ async def run() -> None:
                 return web.json_response({"error": str(exc), "hint": "Wait a moment before sending more requests."}, status=429)
 
             synapse  = IngestSynapse(
-                text          = body.get("text"),
-                raw_embedding = body.get("raw_embedding"),
-                metadata      = body.get("metadata") or {},
-                namespace     = body.get("namespace") or None,
-                namespace_key = body.get("namespace_key") or None,
+                text                  = body.get("text"),
+                raw_embedding         = body.get("raw_embedding"),
+                metadata              = body.get("metadata") or {},
+                namespace             = body.get("namespace") or None,
+                namespace_hotkey      = body.get("namespace_hotkey") or None,
+                namespace_sig         = body.get("namespace_sig") or None,
+                namespace_timestamp_ms= body.get("namespace_timestamp_ms") or None,
+                namespace_key         = body.get("namespace_key") or None,
             )
             result = await asyncio.get_running_loop().run_in_executor(None, lambda: ingest_handler.handle(synapse, caller_hotkey=caller_hotkey))
             elapsed_ms = (time.perf_counter() - t0) * 1000
@@ -546,11 +549,14 @@ async def run() -> None:
                 return web.json_response({"error": str(exc)}, status=429)
 
             synapse = QuerySynapse(
-                query_text    = body.get("query_text"),
-                query_vector  = body.get("query_vector"),
-                top_k         = int(body.get("top_k", 10)),
-                namespace     = body.get("namespace") or None,
-                namespace_key = body.get("namespace_key") or None,
+                query_text            = body.get("query_text"),
+                query_vector          = body.get("query_vector"),
+                top_k                 = int(body.get("top_k", 10)),
+                namespace             = body.get("namespace") or None,
+                namespace_hotkey      = body.get("namespace_hotkey") or None,
+                namespace_sig         = body.get("namespace_sig") or None,
+                namespace_timestamp_ms= body.get("namespace_timestamp_ms") or None,
+                namespace_key         = body.get("namespace_key") or None,
             )
             is_private = bool(body.get("namespace"))
             result = await asyncio.get_running_loop().run_in_executor(None, query_handler.handle, synapse)
