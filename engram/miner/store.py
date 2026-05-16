@@ -7,7 +7,9 @@ Qdrant runs as a separate Rust process — we talk to it via its Python client.
 
 from __future__ import annotations
 
+import hashlib
 import os
+import struct
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -26,6 +28,12 @@ from engram.config import (
 
 
 _PUBLIC_NS = "__public__"   # sentinel stored in payload to mark public records
+
+
+def _embedding_hash(embedding: np.ndarray) -> str:
+    """SHA-256 of little-endian f32 bytes — identical to Rust hash_embedding()."""
+    raw = struct.pack(f"<{len(embedding)}f", *embedding.astype(np.float32))
+    return hashlib.sha256(raw).hexdigest()
 
 
 @dataclass
@@ -64,6 +72,15 @@ class VectorStore(ABC):
         offset: int = 0,
         namespace: str = _PUBLIC_NS,
     ) -> list[dict]: ...
+    @abstractmethod
+    def all_cids_and_hashes(self) -> list[tuple[str, str]]:
+        """Return (cid, embedding_hash_hex) for every stored memory.
+
+        embedding_hash_hex = SHA-256(little-endian f32 bytes) — the same
+        value used in storage proofs and Merkle commitment leaves.
+        Used to build the full-corpus Merkle commitment.
+        """
+        ...
 
 
 # ── Qdrant backend ────────────────────────────────────────────────────────────
@@ -130,6 +147,7 @@ class QdrantStore(VectorStore):
                     payload={
                         "cid": record.cid,
                         "_ns": record.namespace,
+                        "_emb_hash": _embedding_hash(record.embedding),
                         **record.metadata,
                     },
                 )
@@ -203,15 +221,11 @@ class QdrantStore(VectorStore):
     ) -> list[dict]:
         from qdrant_client.models import Filter, FieldCondition, MatchValue
 
-        qdrant_filter = None
-        conditions = []
-        if namespace != _PUBLIC_NS:
-            conditions.append(FieldCondition(key="namespace", match=MatchValue(value=namespace)))
+        conditions = [FieldCondition(key="_ns", match=MatchValue(value=namespace))]
         if filter:
             for k, v in filter.items():
                 conditions.append(FieldCondition(key=k, match=MatchValue(value=str(v))))
-        if conditions:
-            qdrant_filter = Filter(must=conditions)
+        qdrant_filter = Filter(must=conditions)
 
         results, _ = self._client.scroll(
             collection_name=self._collection,
@@ -221,10 +235,43 @@ class QdrantStore(VectorStore):
             with_payload=True,
             with_vectors=False,
         )
+        _INTERNAL = {"cid", "_ns", "_emb_hash"}
         return [
-            {"cid": r.payload.get("cid", ""), "metadata": r.payload.get("metadata", {})}
+            {
+                "cid": (r.payload or {}).get("cid", ""),
+                "metadata": {k: v for k, v in (r.payload or {}).items() if k not in _INTERNAL},
+            }
             for r in results
         ]
+
+    def all_cids_and_hashes(self) -> list[tuple[str, str]]:
+        """Scroll the full collection and return (cid, embedding_hash) pairs.
+
+        embedding_hash is read from the stored _emb_hash payload field —
+        no vector fetch needed.  Records without _emb_hash (ingested before
+        this field was added) are skipped and will be absent from the
+        commitment until they are re-upserted.
+        """
+        pairs: list[tuple[str, str]] = []
+        offset = None
+        while True:
+            results, next_offset = self._client.scroll(
+                collection_name=self._collection,
+                offset=offset,
+                limit=1000,
+                with_payload=True,
+                with_vectors=False,
+            )
+            for r in results:
+                p = r.payload or {}
+                cid = p.get("cid", "")
+                emb_hash = p.get("_emb_hash", "")
+                if cid and emb_hash:
+                    pairs.append((cid, emb_hash))
+            if next_offset is None:
+                break
+            offset = next_offset
+        return pairs
 
 
 # ── FAISS backend ─────────────────────────────────────────────────────────────
@@ -371,6 +418,12 @@ class FAISSStore(VectorStore):
         # Stable sort by insertion order approximated via cid_to_id
         results.sort(key=lambda r: self._cid_to_id.get(r["cid"], 0))
         return results[offset: offset + limit]
+
+    def all_cids_and_hashes(self) -> list[tuple[str, str]]:
+        return [
+            (cid, _embedding_hash(emb))
+            for cid, emb in self._vectors.items()
+        ]
 
     def save(self, path: str | None = None) -> None:
         import faiss

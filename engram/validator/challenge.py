@@ -69,12 +69,13 @@ class ChallengeDispatcher:
     The validator calls `run_challenge_round()` on a timer.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, validator_hotkey_hex: str = "0" * 64) -> None:
         self._records: dict[str, MinerProofRecord] = {}
-        self._known_cids: list[str] = []    # ordered list for O(1) random sampling
-        self._known_cids_set: set[str] = set()  # shadow set for O(1) dedup checks
-        # Tracks used nonces (hex → expiry timestamp) to prevent replay within TTL window
+        self._known_cids: list[str] = []
+        self._known_cids_set: set[str] = set()
         self._used_nonces: dict[str, float] = {}
+        # 64-char hex SR25519 public key — binds every HMAC proof to this validator identity
+        self._validator_hotkey_hex = validator_hotkey_hex
 
     def register_cid(self, cid: str) -> None:
         """Register a CID that the validator can use for challenges."""
@@ -102,7 +103,7 @@ class ChallengeDispatcher:
     def build_challenge(self, cid: str) -> "engram_core.Challenge | None":
         if not _RUST_AVAILABLE:
             return None
-        return engram_core.generate_challenge(cid, CHALLENGE_TIMEOUT_SECS)
+        return engram_core.generate_challenge(cid, CHALLENGE_TIMEOUT_SECS, self._validator_hotkey_hex)
 
     def verify_response(
         self,

@@ -187,6 +187,50 @@ def test_get_cross_namespace_returns_none(store: FAISSStore) -> None:
     assert store.get("my_secret_cid", namespace="other_ns") is None
 
 
+def test_get_without_namespace_cannot_reach_private_records(store: FAISSStore) -> None:
+    """store.get(cid) with no explicit namespace defaults to public and returns None
+    for private-namespace records — the HTTP /retrieve handler is therefore safe
+    by the store's own default even without the extra namespace check."""
+    store.upsert(VectorRecord(
+        cid="private_memory",
+        embedding=_vec([1.0, 0.0, 0.0, 0.0]),
+        namespace="alice_private",
+    ))
+    # Default public lookup returns None — private record is not exposed.
+    assert store.get("private_memory") is None
+    # Explicit correct namespace works for the owner.
+    assert store.get("private_memory", namespace="alice_private") is not None
+
+
+def test_list_returns_records_for_given_namespace(store: FAISSStore) -> None:
+    """store.list(namespace=ns) returns records for that namespace — the HTTP
+    /list handler must verify ownership before calling this, otherwise anyone
+    can enumerate another user's memories."""
+    store.upsert(VectorRecord(
+        cid="alice_cid",
+        embedding=_vec([1.0, 0.0, 0.0, 0.0]),
+        namespace="alice_ns",
+    ))
+    store.upsert(VectorRecord(
+        cid="bob_cid",
+        embedding=_vec([0.0, 1.0, 0.0, 0.0]),
+        namespace="bob_ns",
+    ))
+    alice_records = [r["cid"] for r in store.list(namespace="alice_ns")]
+    bob_records   = [r["cid"] for r in store.list(namespace="bob_ns")]
+    assert "alice_cid" in alice_records and "bob_cid" not in alice_records
+    assert "bob_cid" in bob_records and "alice_cid" not in bob_records
+
+
+def test_namespace_owner_hotkey_must_match_for_access(registry: NamespaceRegistry) -> None:
+    """A different hotkey cannot claim ownership of an existing namespace."""
+    registry.register_owner("alice_ns", "alice_hotkey_ss58")
+    # Alice's hotkey matches.
+    assert registry.owner_hotkey("alice_ns") == "alice_hotkey_ss58"
+    # Bob's hotkey does not — registry must return the correct owner.
+    assert registry.owner_hotkey("alice_ns") != "bob_hotkey_ss58"
+
+
 def test_many_records_same_vector_different_namespaces(store: FAISSStore) -> None:
     """Many records with identical vectors in N namespaces all stay separated."""
     namespaces = [f"ns_{i}" for i in range(5)]

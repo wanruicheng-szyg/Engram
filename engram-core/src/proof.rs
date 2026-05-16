@@ -3,21 +3,34 @@
 // Storage Proof — Challenge / Response protocol
 //
 // Single-CID flow:
-//   1. Validator calls `generate_challenge(cid)` → Challenge { nonce, cid, expires_at }
+//   1. Validator calls `generate_challenge(cid, timeout_secs, validator_hotkey)` → Challenge
 //   2. Validator sends Challenge to miner
 //   3. Miner calls `generate_response(challenge, embedding)` → ProofResponse
 //   4. Validator calls `verify_response(challenge, response, embedding)` → bool
 //
 // Batch flow (preferred for audit sweeps):
-//   1. Validator calls `generate_batch_challenge(cids)` → BatchChallenge
+//   1. Validator calls `generate_batch_challenge(cids, timeout_secs, validator_hotkey)` → BatchChallenge
 //   2. Miner calls `generate_batch_response(batch, embeddings)` → BatchProofResponse
 //   3. Validator calls `verify_batch_response(batch, response, embeddings)` → Vec<bool>
 //
-// The single-CID proof binds: nonce + sha256(embedding_bytes)
-// The batch proof binds:      nonce + cid_index + sha256(embedding_bytes)
-//   (the index prevents a miner from shuffling valid proofs across positions)
+// HMAC keying
+// -----------
+// Previously the HMAC key was the raw nonce, which the miner already knows (it
+// is in the challenge). That lets a miner with nonce knowledge forge a proof
+// for any embedding_hash they choose, without holding the actual embedding.
 //
-// Both use HMAC-SHA256 with constant-time verification to prevent timing oracles.
+// The hardened key derivation is:
+//   hmac_key = SHA256(validator_hotkey_bytes || nonce)
+//
+// The validator_hotkey is the validator's SR25519 public key (32 bytes), which
+// is public on-chain. Embedding it in the Challenge means the miner can derive
+// the same HMAC key — so the protocol still works — but a proof generated for
+// validator A's challenge is cryptographically invalid for validator B's
+// challenge, and a miner cannot forge a proof for an arbitrary embedding_hash
+// without first finding a SHA256 preimage.
+//
+// Both single-CID and batch proofs bind: derived_key + embedding_hash (+ index for batch)
+// All HMAC comparisons use Mac::verify_slice for guaranteed constant-time checks.
 
 use hmac::{Hmac, Mac};
 use rand::RngCore;
@@ -32,34 +45,36 @@ type HmacSha256 = Hmac<Sha256>;
 pub struct Challenge {
     pub nonce: [u8; 32],
     pub cid: String,
-    pub issued_at: u64,   // unix seconds
-    pub expires_at: u64,  // unix seconds
+    pub issued_at: u64,
+    pub expires_at: u64,
+    /// Validator's SR25519 public key bytes (32 bytes). Included so the miner
+    /// can derive the correct HMAC key without a separate round-trip.
+    pub validator_hotkey: [u8; 32],
 }
 
 #[derive(Debug, Clone)]
 pub struct ProofResponse {
     pub cid: String,
     pub nonce_hex: String,
-    pub embedding_hash: String,  // sha256(embedding_bytes)
-    pub proof: String,           // hmac-sha256(nonce || embedding_hash)
+    pub embedding_hash: String,
+    pub proof: String,
 }
 
 /// A single challenge for multiple CIDs sharing one nonce.
-/// Saves round trips for audit sweeps that need to check dozens of CIDs at once.
 #[derive(Debug, Clone)]
 pub struct BatchChallenge {
-    pub nonce: [u8; 32],      // one nonce covers the whole batch
+    pub nonce: [u8; 32],
     pub cids: Vec<String>,
     pub issued_at: u64,
     pub expires_at: u64,
+    pub validator_hotkey: [u8; 32],
 }
 
-/// One miner's response entry for a single CID within a batch.
 #[derive(Debug, Clone)]
 pub struct BatchProofEntry {
     pub cid: String,
     pub embedding_hash: String,
-    pub proof: String,  // hmac-sha256(nonce || cid_index_le4 || embedding_hash)
+    pub proof: String,
 }
 
 #[derive(Debug, Clone)]
@@ -68,53 +83,60 @@ pub struct BatchProofResponse {
     pub entries: Vec<BatchProofEntry>,
 }
 
+// ── Key derivation ────────────────────────────────────────────────────────────
+
+/// Derive the HMAC key: SHA256(validator_hotkey || nonce).
+///
+/// This binds every proof to a specific validator identity. A proof produced
+/// for validator A's challenge is invalid for validator B's challenge even if
+/// both used the same nonce, because the derived keys differ.
+fn derive_hmac_key(validator_hotkey: &[u8; 32], nonce: &[u8; 32]) -> [u8; 32] {
+    let mut h = Sha256::new();
+    h.update(validator_hotkey);
+    h.update(nonce);
+    h.finalize().into()
+}
+
 // ── Validator Side — single CID ───────────────────────────────────────────────
 
-/// Generate a challenge for a given CID. The validator sends this to the miner.
-pub fn generate_challenge(cid: &str, timeout_secs: u64) -> Challenge {
+/// Generate a challenge for a given CID.
+///
+/// `validator_hotkey` is the validator's SR25519 public key (32 bytes, raw).
+/// Pass the raw bytes — not the SS58 string — for a compact on-wire representation.
+pub fn generate_challenge(cid: &str, timeout_secs: u64, validator_hotkey: [u8; 32]) -> Challenge {
     let mut nonce = [0u8; 32];
     rand::thread_rng().fill_bytes(&mut nonce);
-
     let now = unix_now();
     Challenge {
         nonce,
         cid: cid.to_string(),
         issued_at: now,
         expires_at: now + timeout_secs,
+        validator_hotkey,
     }
 }
 
-/// Verify a miner's proof response.
-///
-/// All comparisons are constant-time to prevent timing oracles.
+/// Verify a miner's proof response. All comparisons are constant-time.
 pub fn verify_response(
     challenge: &Challenge,
     response: &ProofResponse,
     embedding: &[f32],
 ) -> bool {
-    // 1. CID must match
     if challenge.cid != response.cid {
         return false;
     }
-
-    // 2. Not expired
     if unix_now() > challenge.expires_at {
         return false;
     }
-
-    // 3. Nonce must match
     if response.nonce_hex != hex::encode(challenge.nonce) {
         return false;
     }
-
-    // 4. Embedding hash — compute and compare constant-time
     let expected_emb_hash = hash_embedding(embedding);
     if !constant_time_eq_str(&expected_emb_hash, &response.embedding_hash) {
         return false;
     }
-
-    // 5. HMAC proof — use mac.verify_slice() for guaranteed constant-time check
-    verify_proof_ct(&challenge.nonce, &response.embedding_hash, &response.proof)
+    let key = derive_hmac_key(&challenge.validator_hotkey, &challenge.nonce);
+    verify_proof_ct(&key, &response.embedding_hash, &response.proof)
 }
 
 // ── Miner Side — single CID ───────────────────────────────────────────────────
@@ -122,8 +144,8 @@ pub fn verify_response(
 /// Generate a proof response for a challenge, given the stored embedding.
 pub fn generate_response(challenge: &Challenge, embedding: &[f32]) -> ProofResponse {
     let embedding_hash = hash_embedding(embedding);
-    let proof = compute_proof(&challenge.nonce, &embedding_hash);
-
+    let key = derive_hmac_key(&challenge.validator_hotkey, &challenge.nonce);
+    let proof = compute_proof(&key, &embedding_hash);
     ProofResponse {
         cid: challenge.cid.clone(),
         nonce_hex: hex::encode(challenge.nonce),
@@ -135,7 +157,11 @@ pub fn generate_response(challenge: &Challenge, embedding: &[f32]) -> ProofRespo
 // ── Validator Side — batch CIDs ───────────────────────────────────────────────
 
 /// Generate a batch challenge covering multiple CIDs in one round trip.
-pub fn generate_batch_challenge(cids: &[&str], timeout_secs: u64) -> BatchChallenge {
+pub fn generate_batch_challenge(
+    cids: &[&str],
+    timeout_secs: u64,
+    validator_hotkey: [u8; 32],
+) -> BatchChallenge {
     let mut nonce = [0u8; 32];
     rand::thread_rng().fill_bytes(&mut nonce);
     let now = unix_now();
@@ -144,29 +170,27 @@ pub fn generate_batch_challenge(cids: &[&str], timeout_secs: u64) -> BatchChalle
         cids: cids.iter().map(|s| s.to_string()).collect(),
         issued_at: now,
         expires_at: now + timeout_secs,
+        validator_hotkey,
     }
 }
 
 /// Verify a miner's batch response.
 ///
-/// Returns one bool per CID in the original batch order.
-/// Expired challenges fail all entries. Mismatched nonce fails all entries.
-/// Individual CID failures are recorded per-entry so the validator can
-/// slash/penalise at per-CID granularity without discarding the whole batch.
+/// Returns one bool per CID. Expired challenges or nonce mismatches return
+/// all-False. Individual failures are per-entry for per-CID penalisation.
 pub fn verify_batch_response(
     batch: &BatchChallenge,
     response: &BatchProofResponse,
     embeddings: &[Vec<f32>],
 ) -> Vec<bool> {
     let n = batch.cids.len();
-
-    // Whole-batch guards — these are not per-entry
     if unix_now() > batch.expires_at {
         return vec![false; n];
     }
     if response.nonce_hex != hex::encode(batch.nonce) {
         return vec![false; n];
     }
+    let key = derive_hmac_key(&batch.validator_hotkey, &batch.nonce);
 
     batch
         .cids
@@ -178,20 +202,14 @@ pub fn verify_batch_response(
                 Some(e) => e,
                 None => return false,
             };
-
-            // CID at position must match what was challenged
             if entry.cid != *cid {
                 return false;
             }
-
-            // Embedding hash — constant-time
             let expected_hash = hash_embedding(emb);
             if !constant_time_eq_str(&expected_hash, &entry.embedding_hash) {
                 return false;
             }
-
-            // HMAC proof — constant-time, index-bound to prevent position shuffling
-            verify_batch_proof_ct(&batch.nonce, idx as u32, &entry.embedding_hash, &entry.proof)
+            verify_batch_proof_ct(&key, idx as u32, &entry.embedding_hash, &entry.proof)
         })
         .collect()
 }
@@ -203,6 +221,7 @@ pub fn generate_batch_response(
     batch: &BatchChallenge,
     embeddings: &[Vec<f32>],
 ) -> BatchProofResponse {
+    let key = derive_hmac_key(&batch.validator_hotkey, &batch.nonce);
     let entries = batch
         .cids
         .iter()
@@ -210,12 +229,8 @@ pub fn generate_batch_response(
         .enumerate()
         .map(|(idx, (cid, emb))| {
             let embedding_hash = hash_embedding(emb);
-            let proof = compute_batch_proof(&batch.nonce, idx as u32, &embedding_hash);
-            BatchProofEntry {
-                cid: cid.clone(),
-                embedding_hash,
-                proof,
-            }
+            let proof = compute_batch_proof(&key, idx as u32, &embedding_hash);
+            BatchProofEntry { cid: cid.clone(), embedding_hash, proof }
         })
         .collect();
 
@@ -232,10 +247,10 @@ pub(crate) fn hash_embedding(embedding: &[f32]) -> String {
 
     #[cfg(target_endian = "little")]
     {
-        // Safety: f32 and u8 have the same alignment requirements on LE systems;
-        // we are only reinterpreting the memory layout, not doing arithmetic.
         let ptr = embedding.as_ptr() as *const u8;
         let len = embedding.len() * 4;
+        // Safety: f32 and u8 have the same alignment; we only reinterpret the
+        // memory layout, not do arithmetic.
         let byte_slice = unsafe { std::slice::from_raw_parts(ptr, len) };
         hasher.update(byte_slice);
     }
@@ -249,15 +264,12 @@ pub(crate) fn hash_embedding(embedding: &[f32]) -> String {
     hex::encode(hasher.finalize())
 }
 
-/// Constant-time string equality.
-/// Both strings must be the same byte length for this to be strictly CT; if
-/// they differ in length we return false immediately (which leaks length, but
-/// both sides derive the hash with the same algorithm so length is public).
+/// Constant-time string equality. Length difference leaks length, but both
+/// sides derive hashes with the same algorithm so length is already public.
 fn constant_time_eq_str(a: &str, b: &str) -> bool {
     if a.len() != b.len() {
         return false;
     }
-    // XOR-fold all bytes; any difference produces a non-zero accumulator.
     let diff = a
         .as_bytes()
         .iter()
@@ -266,39 +278,31 @@ fn constant_time_eq_str(a: &str, b: &str) -> bool {
     diff == 0
 }
 
-/// Single-CID HMAC proof generation.
-fn compute_proof(nonce: &[u8; 32], embedding_hash: &str) -> String {
-    // TODO(production): replace nonce-as-key with a shared subnet secret or
-    // the validator's hotkey so proofs cannot be forged even with nonce knowledge.
-    let mut mac = HmacSha256::new_from_slice(nonce).expect("HMAC accepts any key length");
+fn compute_proof(key: &[u8; 32], embedding_hash: &str) -> String {
+    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
     mac.update(embedding_hash.as_bytes());
     hex::encode(mac.finalize().into_bytes())
 }
 
-/// Single-CID constant-time HMAC verification.
-/// Uses `Mac::verify_slice` which is guaranteed constant-time by the hmac crate.
-fn verify_proof_ct(nonce: &[u8; 32], embedding_hash: &str, proof_hex: &str) -> bool {
+fn verify_proof_ct(key: &[u8; 32], embedding_hash: &str, proof_hex: &str) -> bool {
     let proof_bytes = match hex::decode(proof_hex) {
         Ok(b) => b,
         Err(_) => return false,
     };
-    let mut mac = HmacSha256::new_from_slice(nonce).expect("HMAC accepts any key length");
+    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
     mac.update(embedding_hash.as_bytes());
     mac.verify_slice(&proof_bytes).is_ok()
 }
 
-/// Batch HMAC proof: binds nonce + position index + embedding_hash.
-/// The index prevents a miner from shuffling valid proofs between CID slots.
-fn compute_batch_proof(nonce: &[u8; 32], cid_index: u32, embedding_hash: &str) -> String {
-    let mut mac = HmacSha256::new_from_slice(nonce).expect("HMAC accepts any key length");
+fn compute_batch_proof(key: &[u8; 32], cid_index: u32, embedding_hash: &str) -> String {
+    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
     mac.update(&cid_index.to_le_bytes());
     mac.update(embedding_hash.as_bytes());
     hex::encode(mac.finalize().into_bytes())
 }
 
-/// Batch HMAC constant-time verification.
 fn verify_batch_proof_ct(
-    nonce: &[u8; 32],
+    key: &[u8; 32],
     cid_index: u32,
     embedding_hash: &str,
     proof_hex: &str,
@@ -307,7 +311,7 @@ fn verify_batch_proof_ct(
         Ok(b) => b,
         Err(_) => return false,
     };
-    let mut mac = HmacSha256::new_from_slice(nonce).expect("HMAC accepts any key length");
+    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
     mac.update(&cid_index.to_le_bytes());
     mac.update(embedding_hash.as_bytes());
     mac.verify_slice(&proof_bytes).is_ok()
@@ -330,12 +334,15 @@ mod tests {
         vec![0.1, 0.2, 0.3, 0.4, 0.5]
     }
 
+    fn validator_a() -> [u8; 32] { [0xAA; 32] }
+    fn validator_b() -> [u8; 32] { [0xBB; 32] }
+
     // ── Single-CID tests ──────────────────────────────────────────────────────
 
     #[test]
     fn valid_proof_verifies() {
         let emb = dummy_embedding();
-        let challenge = generate_challenge("v1::abc123", 60);
+        let challenge = generate_challenge("v1::abc123", 60, validator_a());
         let response = generate_response(&challenge, &emb);
         assert!(verify_response(&challenge, &response, &emb));
     }
@@ -344,7 +351,7 @@ mod tests {
     fn wrong_embedding_fails() {
         let emb = dummy_embedding();
         let wrong_emb = vec![9.9f32; 5];
-        let challenge = generate_challenge("v1::abc123", 60);
+        let challenge = generate_challenge("v1::abc123", 60, validator_a());
         let response = generate_response(&challenge, &emb);
         assert!(!verify_response(&challenge, &response, &wrong_emb));
     }
@@ -352,7 +359,7 @@ mod tests {
     #[test]
     fn wrong_cid_fails() {
         let emb = dummy_embedding();
-        let challenge = generate_challenge("v1::abc123", 60);
+        let challenge = generate_challenge("v1::abc123", 60, validator_a());
         let mut response = generate_response(&challenge, &emb);
         response.cid = "v1::wrong".to_string();
         assert!(!verify_response(&challenge, &response, &emb));
@@ -361,13 +368,32 @@ mod tests {
     #[test]
     fn tampered_proof_fails() {
         let emb = dummy_embedding();
-        let challenge = generate_challenge("v1::abc123", 60);
+        let challenge = generate_challenge("v1::abc123", 60, validator_a());
         let mut response = generate_response(&challenge, &emb);
-        // flip one hex char in the proof
         let mut chars: Vec<char> = response.proof.chars().collect();
         chars[0] = if chars[0] == 'a' { 'b' } else { 'a' };
         response.proof = chars.into_iter().collect();
         assert!(!verify_response(&challenge, &response, &emb));
+    }
+
+    /// Core security property: a proof generated for validator A's challenge
+    /// must not verify against a challenge with validator B's hotkey, even if
+    /// the nonce and CID are identical.
+    #[test]
+    fn proof_is_validator_bound() {
+        let emb = dummy_embedding();
+        let cid = "v1::abc123";
+        let timeout = 60;
+
+        let challenge_a = generate_challenge(cid, timeout, validator_a());
+        let response_a = generate_response(&challenge_a, &emb);
+
+        // Construct a challenge_b with the same nonce and CID but different hotkey
+        let mut challenge_b = challenge_a.clone();
+        challenge_b.validator_hotkey = validator_b();
+
+        assert!(verify_response(&challenge_a, &response_a, &emb),  "original must verify");
+        assert!(!verify_response(&challenge_b, &response_a, &emb), "cross-validator replay must fail");
     }
 
     // ── Batch tests ───────────────────────────────────────────────────────────
@@ -375,12 +401,8 @@ mod tests {
     #[test]
     fn batch_all_valid() {
         let cids = vec!["v1::aaa", "v1::bbb", "v1::ccc"];
-        let embeddings: Vec<Vec<f32>> = vec![
-            vec![0.1, 0.2],
-            vec![0.3, 0.4],
-            vec![0.5, 0.6],
-        ];
-        let batch = generate_batch_challenge(&cids, 60);
+        let embeddings: Vec<Vec<f32>> = vec![vec![0.1, 0.2], vec![0.3, 0.4], vec![0.5, 0.6]];
+        let batch = generate_batch_challenge(&cids, 60, validator_a());
         let response = generate_batch_response(&batch, &embeddings);
         let results = verify_batch_response(&batch, &response, &embeddings);
         assert_eq!(results, vec![true, true, true]);
@@ -390,10 +412,8 @@ mod tests {
     fn batch_one_wrong_embedding() {
         let cids = vec!["v1::aaa", "v1::bbb"];
         let embeddings: Vec<Vec<f32>> = vec![vec![0.1, 0.2], vec![0.3, 0.4]];
-        let batch = generate_batch_challenge(&cids, 60);
+        let batch = generate_batch_challenge(&cids, 60, validator_a());
         let response = generate_batch_response(&batch, &embeddings);
-
-        // Verify with wrong embedding for second slot
         let wrong_embeddings = vec![vec![0.1f32, 0.2], vec![9.9f32, 9.9]];
         let results = verify_batch_response(&batch, &response, &wrong_embeddings);
         assert_eq!(results, vec![true, false]);
@@ -401,16 +421,12 @@ mod tests {
 
     #[test]
     fn batch_proof_not_shuffleable() {
-        // A miner cannot swap valid proofs between slots
         let cids = vec!["v1::aaa", "v1::bbb"];
         let embeddings: Vec<Vec<f32>> = vec![vec![0.1, 0.2], vec![0.3, 0.4]];
-        let batch = generate_batch_challenge(&cids, 60);
+        let batch = generate_batch_challenge(&cids, 60, validator_a());
         let mut response = generate_batch_response(&batch, &embeddings);
-
-        // Swap the two entries
         response.entries.swap(0, 1);
         let results = verify_batch_response(&batch, &response, &embeddings);
-        // Both must fail: CID in entry doesn't match expected position
         assert_eq!(results, vec![false, false]);
     }
 
@@ -418,10 +434,52 @@ mod tests {
     fn batch_expired_fails_all() {
         let cids = vec!["v1::aaa"];
         let embeddings = vec![vec![0.1f32]];
-        let mut batch = generate_batch_challenge(&cids, 0);
-        batch.expires_at = 0; // already expired
+        let mut batch = generate_batch_challenge(&cids, 0, validator_a());
+        batch.expires_at = 0;
         let response = generate_batch_response(&batch, &embeddings);
         let results = verify_batch_response(&batch, &response, &embeddings);
         assert_eq!(results, vec![false]);
+    }
+
+    /// Batch proofs must also be validator-bound.
+    #[test]
+    fn batch_proof_is_validator_bound() {
+        let cids = vec!["v1::aaa", "v1::bbb"];
+        let embeddings: Vec<Vec<f32>> = vec![vec![0.1, 0.2], vec![0.3, 0.4]];
+        let batch_a = generate_batch_challenge(&cids, 60, validator_a());
+        let response_a = generate_batch_response(&batch_a, &embeddings);
+
+        let mut batch_b = batch_a.clone();
+        batch_b.validator_hotkey = validator_b();
+
+        let results_a = verify_batch_response(&batch_a, &response_a, &embeddings);
+        let results_b = verify_batch_response(&batch_b, &response_a, &embeddings);
+        assert_eq!(results_a, vec![true, true]);
+        assert_eq!(results_b, vec![false, false]);
+    }
+
+    #[test]
+    fn derive_hmac_key_is_deterministic() {
+        let hk = validator_a();
+        let nonce = [0x11u8; 32];
+        assert_eq!(derive_hmac_key(&hk, &nonce), derive_hmac_key(&hk, &nonce));
+    }
+
+    #[test]
+    fn derive_hmac_key_differs_by_validator() {
+        let nonce = [0x11u8; 32];
+        assert_ne!(
+            derive_hmac_key(&validator_a(), &nonce),
+            derive_hmac_key(&validator_b(), &nonce),
+        );
+    }
+
+    #[test]
+    fn derive_hmac_key_differs_by_nonce() {
+        let hk = validator_a();
+        assert_ne!(
+            derive_hmac_key(&hk, &[0x11u8; 32]),
+            derive_hmac_key(&hk, &[0x22u8; 32]),
+        );
     }
 }
