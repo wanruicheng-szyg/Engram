@@ -62,8 +62,22 @@ class SessionRegistry:
     """
     Thread-safe, file-persisted registry of all cloud mining sessions.
 
-    Persists to JSONL so the gateway can restart without losing state.
+    Capacity rules
+    ──────────────
+    Each Akash deployment gets its own provider IP, so IP-collisions on the
+    Bittensor network are not a concern for cloud miners.  The real constraint
+    is how many pre-registered node hotkeys the gateway operator has available.
+
+    We enforce two limits:
+      MAX_PER_HOTKEY   – concurrent sessions a single phone key may own (default 3).
+                         One per tier makes operational sense; more is fine.
+      MAX_TOTAL_ACTIVE – total active sessions across all users the gateway will
+                         manage at once (default 50). Raise when you add more
+                         pre-registered hotkeys to the node pool.
     """
+
+    MAX_PER_HOTKEY   = 3
+    MAX_TOTAL_ACTIVE = 50
 
     def __init__(self, path: Path | None = None) -> None:
         self._path   = path or Path("data/cloud_sessions.json")
@@ -81,6 +95,24 @@ class SessionRegistry:
         network: str,
         amount_paid_usd: float,
     ) -> CloudMiningSession:
+        with self._lock:
+            active_for_hotkey = sum(
+                1 for s in self._sessions.values()
+                if s.controller_hotkey == controller_hotkey
+                and s.status in (SessionStatus.PROVISIONING, SessionStatus.ACTIVE)
+            )
+            if active_for_hotkey >= self.MAX_PER_HOTKEY:
+                raise ValueError(
+                    f"Limit reached: {self.MAX_PER_HOTKEY} concurrent sessions per device. "
+                    "Stop an existing session before starting a new one."
+                )
+            total_active = sum(
+                1 for s in self._sessions.values()
+                if s.status in (SessionStatus.PROVISIONING, SessionStatus.ACTIVE)
+            )
+            if total_active >= self.MAX_TOTAL_ACTIVE:
+                raise ValueError("Gateway at capacity — please try again shortly.")
+
         session_id = str(uuid.uuid4())
         now = time.time()
         session = CloudMiningSession(
@@ -96,7 +128,7 @@ class SessionRegistry:
         with self._lock:
             self._sessions[session_id] = session
             self._flush()
-        logger.info(f"Session created | id={session_id[:8]} hotkey={controller_hotkey[:12]}…")
+        logger.info(f"Session created | id={session_id[:8]} hotkey={controller_hotkey[:12]}… ({active_for_hotkey+1}/{self.MAX_PER_HOTKEY} for this device)")
         return session
 
     def get(self, session_id: str) -> CloudMiningSession | None:

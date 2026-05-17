@@ -59,8 +59,15 @@ export default function OnboardingScreen({ onComplete }: Props) {
       const kp = await generateKeypair();
       setKeypair(kp);
       setStep('phrase');
-    } catch {
-      Alert.alert('Error', 'Failed to generate keypair. Please try again.');
+    } catch (e: any) {
+      Alert.alert(
+        'Generation failed',
+        e?.message ?? 'Crypto backend unavailable.',
+        [
+          { text: 'Retry', onPress: create },
+          { text: 'Skip for now', style: 'cancel', onPress: () => onComplete({ ss58: '', publicHex: '', mnemonic: '' }) },
+        ]
+      );
     } finally {
       setGenerating(false);
     }

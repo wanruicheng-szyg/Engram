@@ -1,3 +1,4 @@
+import 'react-native-get-random-values'; // must be first — polyfills crypto.getRandomValues for Hermes
 import { registerRootComponent } from 'expo';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
