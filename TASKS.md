@@ -71,6 +71,49 @@ Shipped. `ENGRAM_ENV=mainnet` in `.env.miner` causes `REQUIRE_HOTKEY_SIG` to def
 
 ---
 
+## Engram → XERIS Relay (Bridge / Intelligence Router)
+
+Validators become AI message buses — Engram subnet outputs forwarded as signed payloads into XERIS mainnet for SageBot consumption.
+
+Architecture: `Engram Subnet → Validator Listener → Relay Adapter → Signed Payload → XERIS Mainnet → SageBot / Agents`
+
+### Phase 1 — Relay Core
+
+- [ ] Create `engram/relay/` module
+- [ ] `engram/relay/adapter.py` — normalize subnet output to XERIS payload schema (include `output_hash`, `netuid`, `block`)
+- [ ] `engram/relay/client.py` — HTTP/gRPC client that submits signed payload to XERIS endpoint
+- [ ] `engram/relay/signer.py` — sign payload with validator sr25519 hotkey (reuse existing key infra)
+- [ ] Add output hash (`sha256(json.dumps(result))`) + Engram block number to every payload to prevent tampering
+
+### Phase 2 — Validator Integration
+
+- [ ] Hook `relay.emit()` into `engram/validator/forward.py` after scoring, before `set_weights()`
+- [ ] Finality guard — only relay after 3 block confirmations on Engram side
+- [ ] Nonce (block + uid + timestamp) on every payload to prevent replay attacks
+- [ ] Log all relay submissions to local SQLite for debugging and audit
+
+### Phase 3 — Trust & Reliability
+
+- [ ] Multi-validator quorum — at least 2 validator signatures before XERIS accepts payload
+- [ ] XERIS-side verification — `output_hash` checked against Engram on-chain state
+- [ ] Dead-letter queue — retry with exponential backoff on XERIS submission failure, never drop
+- [ ] `/relay/status` health endpoint for monitoring
+
+### Phase 4 — SageBot Integration
+
+- [ ] Define XERIS payload schema for each Engram output type (memory, inference, ranking)
+- [ ] Wire Dexter MCP tool calls into relay flow
+- [ ] x402 auth on relay submissions (XERIS knows who is paying for compute)
+- [ ] SageBot receives Engram outputs as `external_intelligence` context
+
+### Phase 5 — Observability
+
+- [ ] Grafana: relay latency, submission success rate, payload volume
+- [ ] Alert on 3+ consecutive relay failures
+- [ ] Track XERIS acknowledgement vs relay submission timestamp (end-to-end lag)
+
+---
+
 ## Infrastructure
 
 ### 🔲 theengram.space SSL Certificate
