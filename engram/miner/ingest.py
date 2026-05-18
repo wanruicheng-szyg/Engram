@@ -47,12 +47,12 @@ def _add_dp_noise(embedding: np.ndarray, epsilon: float) -> np.ndarray:
 
 def _generate_cid(embedding: np.ndarray, metadata: dict[str, Any], model_version: str) -> str:
     if _RUST_AVAILABLE:
-        return engram_core.generate_cid(
+        return engram_core.generate_cid(  # type: ignore[name-defined]
             embedding.tolist(),
             {k: str(v) for k, v in metadata.items()},
             model_version,
         )
-    return _cid_py.generate_cid(embedding, metadata, model_version)
+    return _cid_py.generate_cid(embedding, metadata, model_version)  # type: ignore[name-defined]
 
 
 class IngestHandler:

@@ -11,13 +11,18 @@ from __future__ import annotations
 
 from typing import Any
 
-import bittensor as bt
 from pydantic import Field
+
+try:
+    import bittensor as bt
+    _Base: type = bt.Synapse
+except ImportError:
+    from pydantic import BaseModel as _Base  # type: ignore[assignment]
 
 
 # ── 1. Ingest ──────────────────────────────────────────────────────────────────
 
-class IngestSynapse(bt.Synapse):
+class IngestSynapse(_Base):  # type: ignore[misc]
     """
     Sent by client/validator to a miner to store an embedding.
 
@@ -80,14 +85,14 @@ class IngestSynapse(bt.Synapse):
 
 # ── 2. Query ───────────────────────────────────────────────────────────────────
 
-class QueryResult(bt.Synapse):
+class QueryResult(_Base):  # type: ignore[misc]
     """A single result item in a query response."""
     cid: str
     score: float
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class QuerySynapse(bt.Synapse):
+class QuerySynapse(_Base):  # type: ignore[misc]
     """
     Sent by validator/client to miners for approximate nearest-neighbor search.
 
@@ -124,7 +129,7 @@ class QuerySynapse(bt.Synapse):
 
 # ── 3. Storage Proof Challenge ─────────────────────────────────────────────────
 
-class ChallengeSynapse(bt.Synapse):
+class ChallengeSynapse(_Base):  # type: ignore[misc]
     """
     Validator issues a storage proof challenge to a miner.
 

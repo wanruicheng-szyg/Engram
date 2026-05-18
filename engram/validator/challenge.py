@@ -12,6 +12,7 @@ import re
 import secrets
 import time
 from dataclasses import dataclass
+from typing import Any
 
 from loguru import logger
 
@@ -100,14 +101,14 @@ class ChallengeDispatcher:
     def slashable_miners(self) -> list[str]:
         return [uid for uid, r in self._records.items() if r.should_slash]
 
-    def build_challenge(self, cid: str) -> "engram_core.Challenge | None":
+    def build_challenge(self, cid: str):  # type: ignore[return]
         if not _RUST_AVAILABLE:
             return None
-        return engram_core.generate_challenge(cid, CHALLENGE_TIMEOUT_SECS, self._validator_hotkey_hex)
+        return engram_core.generate_challenge(cid, CHALLENGE_TIMEOUT_SECS, self._validator_hotkey_hex)  # type: ignore[name-defined]
 
     def verify_response(
         self,
-        challenge: "engram_core.Challenge",
+        challenge: Any,
         response_embedding_hash: str,
         response_proof: str,
         expected_embedding: list[float],
@@ -131,7 +132,7 @@ class ChallengeDispatcher:
 
         # Generate the expected response from the known embedding, then compare
         # using constant-time digest comparison to prevent timing oracle attacks.
-        expected_response = engram_core.generate_response(challenge, expected_embedding)
+        expected_response = engram_core.generate_response(challenge, expected_embedding)  # type: ignore[name-defined]
         hash_ok  = hmac.compare_digest(expected_response.embedding_hash, response_embedding_hash)
         proof_ok = hmac.compare_digest(expected_response.proof, response_proof)
         return hash_ok and proof_ok
