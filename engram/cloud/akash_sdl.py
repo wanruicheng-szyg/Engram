@@ -20,13 +20,14 @@ The miner image is built from the Engram repo and pushed to GHCR.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 MINER_IMAGE = os.getenv(
     "ENGRAM_MINER_IMAGE",
     "ghcr.io/dipraise1/engram:latest",
 )
 
-TIERS = {
+TIERS: dict[str, dict[str, Any]] = {
     "lite":     {"cpu": 1000, "memory": "2Gi", "storage": "10Gi", "price_akt_per_hour": 0.05},
     "standard": {"cpu": 2000, "memory": "4Gi", "storage": "20Gi", "price_akt_per_hour": 0.10},
     "pro":      {"cpu": 4000, "memory": "8Gi", "storage": "40Gi", "price_akt_per_hour": 0.18},

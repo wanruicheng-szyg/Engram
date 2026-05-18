@@ -109,6 +109,7 @@ def _make_qdrant_point(cid: str, ns: str, meta: dict) -> MagicMock:
 
 @pytest.fixture
 def qdrant_store():
+    pytest.importorskip("qdrant_client", reason="qdrant-client not installed")
     from engram.miner.store import QdrantStore
     client = MagicMock()
     store = QdrantStore.__new__(QdrantStore)

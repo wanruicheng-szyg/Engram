@@ -5,7 +5,7 @@ Abstraction over Qdrant (primary) and FAISS (fallback).
 Qdrant runs as a separate Rust process — we talk to it via its Python client.
 """
 
-from __future__ import annotations
+from __future__ import annotations  # resolves 'list' method vs built-in 'list' type ambiguity
 
 import hashlib
 import os
@@ -73,7 +73,7 @@ class VectorStore(ABC):
         namespace: str = _PUBLIC_NS,
     ) -> list[dict]: ...
     @abstractmethod
-    def all_cids_and_hashes(self) -> list[tuple[str, str]]:
+    def all_cids_and_hashes(self) -> "list[tuple[str, str]]":  # type: ignore[valid-type]
         """Return (cid, embedding_hash_hex) for every stored memory.
 
         embedding_hash_hex = SHA-256(little-endian f32 bytes) — the same
@@ -244,7 +244,7 @@ class QdrantStore(VectorStore):
             for r in results
         ]
 
-    def all_cids_and_hashes(self) -> list[tuple[str, str]]:
+    def all_cids_and_hashes(self) -> "list[tuple[str, str]]":  # type: ignore[valid-type]
         """Scroll the full collection and return (cid, embedding_hash) pairs.
 
         embedding_hash is read from the stored _emb_hash payload field —
@@ -416,10 +416,10 @@ class FAISSStore(VectorStore):
             results.append({"cid": cid, "metadata": meta})
 
         # Stable sort by insertion order approximated via cid_to_id
-        results.sort(key=lambda r: self._cid_to_id.get(r["cid"], 0))
+        results.sort(key=lambda r: self._cid_to_id.get(str(r["cid"]), 0))
         return results[offset: offset + limit]
 
-    def all_cids_and_hashes(self) -> list[tuple[str, str]]:
+    def all_cids_and_hashes(self) -> "list[tuple[str, str]]":  # type: ignore[valid-type]
         return [
             (cid, _embedding_hash(emb))
             for cid, emb in self._vectors.items()

@@ -846,11 +846,11 @@ class EngramClient:
 
     def ingest_conversation(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, str]],  # type: ignore[valid-type]
         *,
         session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> list[str]:
+    ) -> list[str]:  # type: ignore[valid-type]
         """
         Store a conversation (list of messages) as individual memories.
 
@@ -884,7 +884,7 @@ class EngramClient:
         import time as _time
 
         cids: list[str] = []
-        for msg in messages:
+        for msg in messages:  # type: ignore[attr-defined]
             role    = str(msg.get("role", "user"))
             content = str(msg.get("content", "")).strip()
             if not content:
