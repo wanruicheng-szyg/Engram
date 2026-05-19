@@ -1,28 +1,23 @@
 # Engram Miner — Docker image for Akash Network deployment
+#
+# engram-core (Rust) is excluded: it's an optional accelerator with Python
+# fallbacks in every import site (try/except). The Rust build would require
+# a full Rust toolchain install inside Docker, greatly increasing build time
+# and image size for an optional dependency.
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Rust toolchain (needed for maturin / engram-core) + runtime libs for faiss/bittensor
+# Runtime libs: libgomp1 for faiss-cpu, libgmp-dev for bittensor crypto
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl build-essential pkg-config libssl-dev git \
+    build-essential pkg-config libssl-dev git \
     libgomp1 libgmp-dev && \
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Install Python deps from pyproject.toml (canonical source — cached layer)
+# Install Python deps first (cached layer — only rebuilds when pyproject.toml changes)
 COPY pyproject.toml README.md ./
 COPY engram/ engram/
 RUN pip install --no-cache-dir ".[node]"
-
-# Build and install engram-core Rust extension
-COPY Cargo.toml Cargo.lock ./
-COPY engram-core/ engram-core/
-RUN pip install --no-cache-dir maturin && \
-    maturin build --manifest-path engram-core/Cargo.toml --release --out /dist && \
-    pip install /dist/*.whl
 
 COPY neurons/miner.py neurons/miner.py
 RUN mkdir -p data
