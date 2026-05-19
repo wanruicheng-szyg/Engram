@@ -4,8 +4,10 @@
 
 > Permanent, content-addressed semantic memory for AI — store text, images, and PDFs with cryptographic proofs. No central authority, no AWS, no single point of failure.
 
+[![CI](https://github.com/Dipraise1/Engram/actions/workflows/ci.yml/badge.svg)](https://github.com/Dipraise1/Engram/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
+[![PyPI](https://img.shields.io/pypi/v/engram-subnet.svg)](https://pypi.org/project/engram-subnet/)
 [![Bittensor](https://img.shields.io/badge/bittensor-subnet%20450-orange.svg)](https://bittensor.com)
 [![Status](https://img.shields.io/badge/status-testnet%20live-green.svg)](https://theengram.space)
 [![Dashboard](https://img.shields.io/badge/dashboard-theengram.space-blueviolet.svg)](https://theengram.space)
@@ -25,6 +27,8 @@ Engram is a Bittensor subnet that turns text, images, and documents into **perma
 - **Incentivized** — miners earn TAO for provably storing and serving vectors
 - **Verifiable** — Merkle commitment over full memory corpus + HMAC challenge-response proofs
 - **Mobile** — mine from your phone via managed Akash Network nodes, pay per hour with USDC on Base
+
+> **Why does this matter?** Every RAG system today relies on a single-vendor vector database (Pinecone, Weaviate, pgvector). Engram replaces that single point of failure with a cryptographically incentivized network — the same model a CDN uses to distribute content, applied to AI memory.
 
 ```
          store("The transformer architecture changed everything.")
@@ -74,8 +78,8 @@ pip install engram-subnet
 Or from source:
 
 ```bash
-git clone https://github.com/Dipraise1/-Engram-.git
-cd -Engram-
+git clone https://github.com/Dipraise1/Engram.git
+cd Engram
 pip install -e .
 ```
 
@@ -305,38 +309,55 @@ Validators score miners every 120 seconds. Miners with proof success rate below 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Bittensor Chain                           │
-│                (metagraph · weight setting · TAO)                │
-└─────────────────────┬──────────────────────┬─────────────────────┘
-                      │                      │
-              ┌───────▼──────┐    ┌──────────▼──────┐
-              │  Validator   │    │      Miner       │
-              │              │    │                  │
-              │ • recall@K   │───▶│ • FAISS HNSW     │
-              │ • challenge  │    │ • embedder       │
-              │ • set weights│◀───│ • proof service  │
-              └──────────────┘    └──────────┬───────┘
-                                             │
-                                   ┌─────────▼────────┐
-                                   │   engram-core     │
-                                   │   (Rust / PyO3)   │
-                                   │ • CID generation  │
-                                   │ • HMAC proofs     │
-                                   └──────────────────┘
+  Your app / AI agent
+        │
+        │  pip install engram-subnet
+        ▼
+┌───────────────────────────────────────────────────────────────┐
+│  EngramClient  ·  LangChain adapter  ·  LlamaIndex adapter    │
+│         (signed requests · optional X25519 encryption)        │
+└───────────────────────┬───────────────────────────────────────┘
+                        │  HTTP  (ingest / query / challenge)
+           ┌────────────┼────────────┐
+           ▼            ▼            ▼
+   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+   │   Miner 1    │  │   Miner 2    │  │   Miner N    │
+   │  Qdrant HNSW │  │  Qdrant HNSW │  │  Qdrant HNSW │  Akash /
+   │  embedder    │  │  embedder    │  │  embedder    │  self-hosted
+   │  engram-core │  │  engram-core │  │  engram-core │
+   └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+          │                 │                  │
+          └─────────────────┼──────────────────┘
+                            │
+                   ┌────────▼─────────┐
+                   │    Validator      │
+                   │  • recall@10      │
+                   │  • HMAC challenge │
+                   │  • set TAO weights│
+                   └────────┬─────────┘
+                            │  weight_commit_hash
+                   ┌────────▼─────────┐
+                   │  Bittensor Chain  │
+                   │  metagraph · TAO  │
+                   └──────────────────┘
 
-              ┌──────────────────────────────────────┐
-              │          engram-web (Next.js)         │
-              │   playground · memory · dashboard     │
-              │            theengram.space            │
-              └──────────────┬───────────────────────┘
-                             │  images / PDFs
-                             ▼
-              ┌──────────────────────────────────────┐
-              │              Arweave                  │
-              │     permanent blob storage            │
-              │    pay-once · publicly verifiable     │
-              └──────────────────────────────────────┘
+   ┌──────────────────────────────────────────┐
+   │  engram-core  (Rust / PyO3)               │
+   │  • deterministic CID generation           │
+   │  • HMAC-SHA256 storage proofs             │
+   │  • Merkle commitment over full corpus     │
+   └──────────────────────────────────────────┘
+
+   ┌──────────────────────────────────────────┐
+   │  Arweave                                  │
+   │  images · PDFs · encrypted private blobs  │
+   │  pay-once · permanent · publicly indexed  │
+   └──────────────────────────────────────────┘
+
+   ┌──────────────────────────────────────────┐
+   │  engram-web  (Next.js · theengram.space)  │
+   │  playground · memory browser · dashboard  │
+   └──────────────────────────────────────────┘
 ```
 
 ---
@@ -369,7 +390,7 @@ engram/
 │       └── services/    # gateway.ts, keystore.ts, payment.ts
 ├── neurons/             # miner.py, validator.py, cloud_gateway.py
 ├── Dockerfile           # Miner image for Akash deployment
-├── tests/               # pytest suite (251 passing)
+├── tests/               # pytest suite (219 passing, all CI green)
 └── docs/                # Architecture, SDK, CLI, protocol, cloud-mining
 ```
 
