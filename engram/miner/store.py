@@ -227,11 +227,14 @@ class QdrantStore(VectorStore):
                 conditions.append(FieldCondition(key=k, match=MatchValue(value=str(v))))
         qdrant_filter = Filter(must=conditions)
 
+        # Qdrant scroll uses cursor-based pagination (offset is a PointId, not a
+        # skip count). To expose a skip-count API we fetch offset+limit records
+        # starting from the beginning and slice locally.
         results, _ = self._client.scroll(
             collection_name=self._collection,
             scroll_filter=qdrant_filter,
-            limit=limit,
-            offset=offset,
+            limit=offset + limit,
+            offset=None,
             with_payload=True,
             with_vectors=False,
         )
@@ -241,7 +244,7 @@ class QdrantStore(VectorStore):
                 "cid": (r.payload or {}).get("cid", ""),
                 "metadata": {k: v for k, v in (r.payload or {}).items() if k not in _INTERNAL},
             }
-            for r in results
+            for r in results[offset:]
         ]
 
     def all_cids_and_hashes(self) -> "list[tuple[str, str]]":  # type: ignore[valid-type]

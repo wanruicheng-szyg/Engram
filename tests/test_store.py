@@ -157,3 +157,21 @@ def test_qdrant_list_private_namespace_filter(qdrant_store):
     condition = call_kwargs["scroll_filter"].must[0]
     assert condition.key == "_ns"
     assert condition.match.value == "team_ns"
+
+
+def test_qdrant_list_pagination_uses_cursor_not_skip(qdrant_store):
+    """offset=N must not be passed to Qdrant (cursor != skip count).
+    Instead fetch offset+limit records and slice locally."""
+    store, client = qdrant_store
+    points = [_make_qdrant_point(f"cid{i}", _PUBLIC, {"i": str(i)}) for i in range(5)]
+    client.scroll.return_value = (points, None)
+
+    page = store.list(limit=2, offset=2, namespace=_PUBLIC)
+
+    call_kwargs = client.scroll.call_args.kwargs
+    # Must NOT pass an integer skip to Qdrant's cursor parameter
+    assert call_kwargs["offset"] is None
+    # Must fetch offset+limit=4 so the slice has enough records
+    assert call_kwargs["limit"] == 4
+    # Slice result: points[2] and points[3]
+    assert [r["cid"] for r in page] == ["cid2", "cid3"]

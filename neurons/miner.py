@@ -43,6 +43,7 @@ from engram.miner.auth import AuthError, verify_request
 from engram.miner.rate_limiter import RateLimiter
 from engram.miner.wallet_tracker import WalletTracker
 from engram.miner.store import build_store
+from engram.miner.http_synapses import ingest_synapse_from_body, query_synapse_from_body
 from engram.protocol import IngestSynapse, QuerySynapse
 from engram.storage.dht import DHTRouter, Peer
 from engram.storage.replication import ReplicationManager
@@ -496,16 +497,7 @@ async def run() -> None:
                 METRICS.ingest_total.labels(status="rate_limited").inc()
                 return web.json_response({"error": str(exc), "hint": "Wait a moment before sending more requests."}, status=429)
 
-            synapse  = IngestSynapse(
-                text                  = body.get("text"),
-                raw_embedding         = body.get("raw_embedding"),
-                metadata              = body.get("metadata") or {},
-                namespace             = body.get("namespace") or None,
-                namespace_hotkey      = body.get("namespace_hotkey") or None,
-                namespace_sig         = body.get("namespace_sig") or None,
-                namespace_timestamp_ms= body.get("namespace_timestamp_ms") or None,
-                namespace_key         = body.get("namespace_key") or None,
-            )
+            synapse = ingest_synapse_from_body(body)
             result = await asyncio.get_running_loop().run_in_executor(None, lambda: ingest_handler.handle(synapse, caller_hotkey=caller_hotkey))
             elapsed_ms = (time.perf_counter() - t0) * 1000
             METRICS.ingest_duration.observe(elapsed_ms)
@@ -582,16 +574,7 @@ async def run() -> None:
                 METRICS.query_total.labels(status="rate_limited").inc()
                 return web.json_response({"error": str(exc)}, status=429)
 
-            synapse = QuerySynapse(
-                query_text            = body.get("query_text"),
-                query_vector          = body.get("query_vector"),
-                top_k                 = int(body.get("top_k", 10)),
-                namespace             = body.get("namespace") or None,
-                namespace_hotkey      = body.get("namespace_hotkey") or None,
-                namespace_sig         = body.get("namespace_sig") or None,
-                namespace_timestamp_ms= body.get("namespace_timestamp_ms") or None,
-                namespace_key         = body.get("namespace_key") or None,
-            )
+            synapse = query_synapse_from_body(body)
             is_private = bool(body.get("namespace"))
             result = await asyncio.get_running_loop().run_in_executor(None, query_handler.handle, synapse)
             elapsed_ms = (_time.perf_counter() - t0) * 1000
