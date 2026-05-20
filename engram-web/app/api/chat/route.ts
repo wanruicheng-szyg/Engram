@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { signMinerRequest } from "@/lib/gateway-signer";
 
 const MINER_URL = process.env.MINER_API_URL || "http://localhost:8091";
 const XAI_API_KEY = process.env.XAI_API_KEY || "";
@@ -36,10 +37,11 @@ function checkRateLimit(sessionId: string): boolean {
 
 async function ingestToEngram(text: string, metadata: Record<string, string>): Promise<string | null> {
   try {
+    const payload = await signMinerRequest({ text, metadata }, "IngestSynapse");
     const res = await fetch(`${MINER_URL}/IngestSynapse`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, metadata }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return null;
@@ -59,10 +61,14 @@ interface MemoryResult {
 
 async function queryEngram(queryText: string, sessionId: string): Promise<MemoryResult[]> {
   try {
+    const payload = await signMinerRequest(
+      { query_text: queryText, top_k: MEMORY_FETCH_K, filter: { session: sessionId } },
+      "QuerySynapse"
+    );
     const res = await fetch(`${MINER_URL}/QuerySynapse`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query_text: queryText, top_k: MEMORY_FETCH_K, filter: { session: sessionId } }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return [];

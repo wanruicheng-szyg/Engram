@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { signMinerRequest } from "@/lib/gateway-signer";
 
 const MINER_URL = process.env.MINER_API_URL || "http://72.62.2.34:8091";
 const MAX_TEXT_CHARS = 8192;
@@ -23,10 +24,12 @@ export async function POST(req: Request) {
       );
     }
 
+    const payload = await signMinerRequest({ text, metadata }, "IngestSynapse");
+
     const res = await fetch(`${MINER_URL}/IngestSynapse`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, metadata }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(30000),
     });
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { signMinerRequest } from "@/lib/gateway-signer";
 
 const MINER_URL = process.env.MINER_API_URL || "http://72.62.2.34:8091";
 
@@ -6,13 +7,15 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    const payload = await signMinerRequest(
+      { query_text: body.query_text, top_k: body.top_k ?? 5 },
+      "QuerySynapse"
+    );
+
     const res = await fetch(`${MINER_URL}/QuerySynapse`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query_text: body.query_text,
-        top_k: body.top_k ?? 5,
-      }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10000),
     });
 
