@@ -84,6 +84,7 @@ setup_logging(os.getenv("LOG_LEVEL", "INFO"))
 
 EVAL_INTERVAL = 120   # seconds between scoring rounds
 WEIGHT_INTERVAL = 600 # seconds between weight-setting
+REPAIR_INTERVAL = 300 # seconds between replication-repair sweeps
 
 
 def _http_post_sync(url: str, payload: dict, timeout: float) -> dict | None:
@@ -163,6 +164,110 @@ async def query_axon_direct(
     )
 
 
+async def _run_repair_cycle(
+    replication_mgr,
+    keypair,
+    axons,
+    uids: list,
+    fallback_miner_ip: str,
+    fallback_miner_port: int,
+) -> None:
+    """Fetch under-replicated CIDs from confirmed holders and push to repair targets.
+
+    Called periodically from the main validator loop.  Each CID is processed at
+    most once per sweep; LOST/CRITICAL tasks are attempted before DEGRADED ones.
+    """
+    tasks = replication_mgr.prioritized_repair_queue()
+    if not tasks:
+        return
+
+    uid_to_axon: dict[int, object] = {int(uid): axon for uid, axon in zip(uids, axons)}
+    pending = sum(1 for t in tasks if t.is_actionable)
+    completed = 0
+    logger.info(f"Repair sweep | tasks={len(tasks)} actionable={pending}")
+
+    for task in tasks:
+        if not task.is_actionable:
+            logger.warning(
+                f"Repair skipped — no online target | cid={task.cid[:20]}… | status={task.status}"
+            )
+            continue
+
+        # Find a confirmed holder to fetch from.
+        record = replication_mgr.get_record(task.cid)
+        if record is None or not record.confirmed_uids:
+            logger.warning(f"Repair skipped — no confirmed holder | cid={task.cid[:20]}…")
+            continue
+
+        source_uid = record.confirmed_uids[0]
+        source_axon = uid_to_axon.get(source_uid)
+        if source_axon is None:
+            logger.warning(f"Repair skipped — source uid={source_uid} not in metagraph")
+            continue
+
+        _src_ip   = source_axon.ip if source_axon.ip not in ("0.0.0.0", "0") else None
+        _use_ip   = _src_ip if _src_ip and _is_routable_ip(_src_ip) else fallback_miner_ip
+        _use_port = source_axon.port or fallback_miner_port
+        _is_local = _use_ip == fallback_miner_ip
+
+        fetch_payload = sign_request(keypair, "RepairSynapse", {"cid": task.cid})
+        fetch_result = await query_axon_direct(
+            ip=_use_ip,
+            port=_use_port,
+            synapse_name="RepairSynapse",
+            payload=fetch_payload,
+            timeout=30.0,
+            allow_private=_is_local,
+        )
+        if fetch_result is None or "embedding" not in fetch_result:
+            logger.warning(
+                f"Repair fetch failed | cid={task.cid[:20]}… | source uid={source_uid}"
+            )
+            continue
+
+        raw_embedding = fetch_result["embedding"]
+        metadata      = fetch_result.get("metadata", {})
+
+        # Push to each repair target.
+        for target_peer in task.targets:
+            target_axon = uid_to_axon.get(target_peer.uid)
+            if target_axon is None:
+                continue
+            _t_ip   = target_axon.ip if target_axon.ip not in ("0.0.0.0", "0") else None
+            _t_use_ip   = _t_ip if _t_ip and _is_routable_ip(_t_ip) else fallback_miner_ip
+            _t_use_port = target_axon.port or fallback_miner_port
+            _t_local    = _t_use_ip == fallback_miner_ip
+
+            ingest_base = {
+                "raw_embedding": raw_embedding,
+                "metadata":      metadata,
+                "cid_override":  task.cid,
+            }
+            ingest_payload = sign_request(keypair, "IngestSynapse", ingest_base)
+            result = await query_axon_direct(
+                ip=_t_use_ip,
+                port=_t_use_port,
+                synapse_name="IngestSynapse",
+                payload=ingest_payload,
+                timeout=30.0,
+                allow_private=_t_local,
+            )
+            if result and not result.get("error"):
+                replication_mgr.confirm(task.cid, target_peer.uid)
+                completed += 1
+                logger.info(
+                    f"Repair complete | cid={task.cid[:20]}… | "
+                    f"uid={target_peer.uid} | status={task.status}"
+                )
+            else:
+                logger.warning(
+                    f"Repair push failed | cid={task.cid[:20]}… | "
+                    f"uid={target_peer.uid} | error={result}"
+                )
+
+    logger.info(f"Repair sweep done | completed={completed}/{pending}")
+
+
 async def run() -> None:
     wallet_name   = os.getenv("WALLET_NAME", "default")
     wallet_hotkey = os.getenv("WALLET_HOTKEY", "default")
@@ -226,6 +331,7 @@ async def run() -> None:
     last_eval = 0.0
     last_weight_set = 0.0
     last_challenge = 0.0
+    last_repair = 0.0
 
     try:
         while True:
@@ -385,6 +491,20 @@ async def run() -> None:
                     latency_scores=latency_scores,
                     proof_rates=proof_rates,
                     slashed_uids=slashed_uids,
+                )
+
+            # ── Repair sweep ──────────────────────────────────────────────────
+            if now - last_repair >= REPAIR_INTERVAL:
+                last_repair = now
+                summary = replication_mgr.health_summary()
+                logger.info(f"Replication health | {summary}")
+                await _run_repair_cycle(
+                    replication_mgr=replication_mgr,
+                    keypair=_keypair,
+                    axons=axons,
+                    uids=uids,
+                    fallback_miner_ip=fallback_miner_ip,
+                    fallback_miner_port=fallback_miner_port,
                 )
 
             await asyncio.sleep(10)

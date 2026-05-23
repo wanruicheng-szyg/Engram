@@ -692,6 +692,32 @@ async def run() -> None:
         METRICS.vectors_stored.set(store.count())
         return web.json_response({"deleted": True, "cid": cid})
 
+    async def handle_repair_retrieve(req: web.Request) -> web.Response:
+        """POST /RepairSynapse — return full embedding for a CID so the validator
+        can copy it to under-replicated miners.  Requires network auth."""
+        try:
+            body = await req.json()
+        except Exception:
+            return web.json_response({"error": "invalid JSON"}, status=400)
+        try:
+            verify_request(body, "RepairSynapse")
+        except AuthError as exc:
+            return web.json_response({"error": str(exc)}, status=401)
+        cid = (body.get("cid") or "").strip()
+        if not cid:
+            return web.json_response({"error": "missing cid"}, status=400)
+        record = store.get(cid)
+        if record is None:
+            return web.json_response({"error": "not found"}, status=404)
+        from engram.miner.store import _PUBLIC_NS
+        if record.namespace != _PUBLIC_NS:
+            return web.json_response({"error": "not found"}, status=404)
+        return web.json_response({
+            "cid":       record.cid,
+            "embedding": record.embedding.tolist(),
+            "metadata":  record.metadata,
+        })
+
     async def handle_list(req: web.Request) -> web.Response:
         """POST /list — paginate and filter stored memories.
 
@@ -1175,6 +1201,7 @@ async def run() -> None:
     app.router.add_delete("/conversations/{conv_id}", handle_conversations_delete)
     app.router.add_get("/retrieve/{cid}",           handle_retrieve)
     app.router.add_delete("/retrieve/{cid}",        handle_delete)
+    app.router.add_post("/RepairSynapse",           handle_repair_retrieve)
     app.router.add_post("/list",                    handle_list)
     app.router.add_get("/health",                   handle_health)
     app.router.add_get("/stats",                    handle_stats)
