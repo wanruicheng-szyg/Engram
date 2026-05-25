@@ -400,14 +400,14 @@ export default function NetworkVisualizer({
   const onlineCount = miners.filter((m) => m.status === "online").length;
 
   return (
-    <div className="rounded-xl overflow-hidden border border-white/[0.07] bg-[#080608]">
+    <div className="rounded-xl overflow-hidden border border-white/[0.14] bg-[#080608]">
       {/* header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#0d0b11]">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.12] bg-[#0d0b11]">
         <div>
           <h2 className="font-display font-semibold text-[18px] text-white leading-tight">
             Network Map
           </h2>
-          <p className="text-[11px] font-mono text-white/25 mt-0.5">
+          <p className="text-[11px] font-mono text-white/55 mt-0.5">
             {view === "network"
               ? "owner → validator → miners · hover to inspect"
               : "miners by score intensity · hover to inspect"}
@@ -416,7 +416,7 @@ export default function NetworkVisualizer({
 
         <div className="flex items-center gap-4">
           {/* legend */}
-          <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-white/25 uppercase tracking-widest">
+          <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-white/55 uppercase tracking-widest">
             {view === "network" ? (
               <>
                 {[
@@ -441,14 +441,14 @@ export default function NetworkVisualizer({
           </div>
 
           {/* view toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-white/[0.07]">
+          <div className="flex rounded-lg overflow-hidden border border-white/[0.14]">
             {(["network", "heatmap"] as ViewMode[]).map((v) => (
               <button key={v}
                 onClick={() => { setView(v); setHovered(null); }}
                 className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest transition-colors ${
                   view === v
                     ? "bg-[#7c3aed]/20 text-[#a855f7]"
-                    : "bg-transparent text-white/25 hover:text-white/50"
+                    : "bg-transparent text-white/55 hover:text-white/50"
                 }`}>
                 {v}
               </button>

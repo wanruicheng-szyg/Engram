@@ -66,7 +66,7 @@ function ScoreBar({ value }: { value: number | null }) {
     return (
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-white/[0.06] rounded-full" />
-        <span className="text-[11px] font-mono text-white/20 w-14 text-right">—</span>
+        <span className="text-[11px] font-mono text-white/42 w-14 text-right">—</span>
       </div>
     );
   }
@@ -100,7 +100,7 @@ function StatCard({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[10px] uppercase tracking-[0.15em] font-mono text-white/25">{label}</span>
+      <span className="text-[12px] uppercase tracking-[0.15em] font-mono text-white/50">{label}</span>
       {loading ? (
         <div className="h-8 w-24 bg-white/[0.04] rounded animate-pulse" />
       ) : (
@@ -110,7 +110,7 @@ function StatCard({
           {value}
         </span>
       )}
-      {sub && <span className="text-[11px] font-mono text-white/25">{sub}</span>}
+      {sub && <span className="text-[11px] font-mono text-white/50">{sub}</span>}
     </div>
   );
 }
@@ -158,17 +158,17 @@ function QueryPlayground() {
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-white/[0.07]">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0d0b11] border-b border-white/[0.06]">
+    <div className="rounded-xl overflow-hidden border border-white/[0.14]">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#141020] border-b border-white/[0.12]">
         <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
         <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
         <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-        <span className="ml-2 text-[11px] text-white/25 font-mono tracking-wide">engram — query playground</span>
+        <span className="ml-2 text-[11px] text-white/50 font-mono tracking-wide">engram — query playground</span>
       </div>
 
-      <div className="bg-[#0a0810] p-5 space-y-4">
+      <div className="bg-[#100d1c] p-5 space-y-4">
         <form onSubmit={handleSearch} className="flex items-center gap-3">
-          <span className="text-white/25 font-mono text-sm select-none">$</span>
+          <span className="text-white/50 font-mono text-sm select-none">$</span>
           <input
             type="text"
             value={query}
@@ -184,22 +184,22 @@ function QueryPlayground() {
         </form>
 
         {error && (
-          <div className="pt-2 border-t border-white/[0.06]">
+          <div className="pt-2 border-t border-white/[0.12]">
             <p className="text-[12px] font-mono text-[#f87171]/70">→ {error}</p>
           </div>
         )}
 
         {results.length > 0 && (
-          <div className="pt-2 border-t border-white/[0.06] space-y-0">
+          <div className="pt-2 border-t border-white/[0.12] space-y-0">
             {elapsed !== null && (
-              <p className="text-[11px] font-mono text-white/25 mb-3">→ {results.length} results in {elapsed}ms</p>
+              <p className="text-[11px] font-mono text-white/50 mb-3">→ {results.length} results in {elapsed}ms</p>
             )}
             {results.map((r, i) => (
-              <div key={i} className="flex items-start justify-between py-2.5 border-b border-white/[0.04] last:border-0">
+              <div key={i} className="flex items-start justify-between py-2.5 border-b border-white/[0.08] last:border-0">
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <div className="text-[11px] font-mono text-[#e040fb]/80 truncate">{r.cid}</div>
                   {Object.keys(r.metadata).length > 0 && (
-                    <div className="text-[10px] font-mono text-white/20">
+                    <div className="text-[12px] font-mono text-white/42">
                       {Object.entries(r.metadata).map(([k, v]) => (
                         <span key={k} className="mr-3">
                           <span className="text-[#7c3aed]/60">{k}</span>
@@ -234,14 +234,14 @@ function MinerTable({ miners, loading }: { miners: Miner[]; loading: boolean }) 
   const cols = ["#", "UID", "Hotkey", "Score", "Vectors", "Latency", "Proof", ""];
 
   return (
-    <div className="rounded-xl border border-white/[0.07] overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#0d0b11]">
+    <div className="rounded-xl border border-white/[0.14] overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.12] bg-[#141020]">
         <div>
           <h2 className="font-display font-semibold text-[18px] text-white leading-tight">Miner Leaderboard</h2>
-          <p className="text-[11px] font-mono text-white/25 mt-0.5">ranked by composite score · 30s refresh</p>
+          <p className="text-[11px] font-mono text-white/50 mt-0.5">ranked by composite score · 30s refresh</p>
         </div>
         {miners.length > 0 && (
-          <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">
+          <span className="text-[12px] font-mono text-white/50 uppercase tracking-widest">
             {miners.filter(m => m.status === "online").length}/{miners.length} online
           </span>
         )}
@@ -250,9 +250,9 @@ function MinerTable({ miners, loading }: { miners: Miner[]; loading: boolean }) 
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-white/[0.12]">
               {cols.map((col, i) => (
-                <th key={i} className={`px-5 py-3 text-[10px] uppercase tracking-[0.15em] font-mono text-white/25 ${i >= 4 ? "text-right" : "text-left"}`}>
+                <th key={i} className={`px-5 py-3 text-[12px] uppercase tracking-[0.15em] font-mono text-white/50 ${i >= 4 ? "text-right" : "text-left"}`}>
                   {col}
                 </th>
               ))}
@@ -261,7 +261,7 @@ function MinerTable({ miners, loading }: { miners: Miner[]; loading: boolean }) 
           <tbody>
             {loading && miners.length === 0 ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <tr key={i} className="border-b border-white/[0.04]">
+                <tr key={i} className="border-b border-white/[0.08]">
                   {cols.map((_, j) => (
                     <td key={j} className="px-5 py-4">
                       <div className="h-3 bg-white/[0.04] rounded animate-pulse" style={{ width: `${40 + Math.random() * 40}%` }} />
@@ -272,13 +272,13 @@ function MinerTable({ miners, loading }: { miners: Miner[]; loading: boolean }) 
             ) : miners.length === 0 ? (
               <tr>
                 <td colSpan={cols.length} className="px-6 py-10 text-center">
-                  <p className="text-[13px] font-mono text-white/20">no miners registered yet</p>
+                  <p className="text-[13px] font-mono text-white/42">no miners registered yet</p>
                   <p className="text-[11px] font-mono text-white/10 mt-1">register on subnet 450 to appear here</p>
                 </td>
               </tr>
             ) : (
               miners.map((m, i) => (
-                <tr key={m.uid} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
+                <tr key={m.uid} className="border-b border-white/[0.08] last:border-0 hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-3.5">
                     <span className="text-[11px] font-mono" style={{
                       color: i === 0 ? "#e040fb" : i === 1 ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)"
@@ -352,10 +352,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#080608] font-sans">
       {/* Nav */}
-      <header className="border-b border-white/[0.06] bg-[#080608]/90 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-white/[0.12] bg-[#080608]/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 h-[56px] flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-1.5 text-white/25 hover:text-white/60 transition-colors text-[12px] font-mono">
+            <Link href="/" className="flex items-center gap-1.5 text-white/50 hover:text-white/60 transition-colors text-[12px] font-mono">
               <ArrowLeft className="w-3.5 h-3.5" /> home
             </Link>
             <span className="w-px h-3.5 bg-white/[0.06]" />
@@ -363,7 +363,7 @@ export default function Dashboard() {
               <Image src="/logo.png" alt="Engram" width={20} height={20} />
               <span className="font-display font-semibold text-[15px] text-white tracking-tight">Engram</span>
             </div>
-            <span className="text-[10px] font-mono text-[#e040fb]/60 border border-[#e040fb]/15 px-2 py-0.5 rounded-full">
+            <span className="text-[12px] font-mono text-[#e040fb]/60 border border-[#e040fb]/15 px-2 py-0.5 rounded-full">
               netuid {stats?.netuid ?? 450}
             </span>
             {/* Live indicator */}
@@ -372,12 +372,12 @@ export default function Dashboard() {
                 {isLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#28c840] opacity-75" />}
                 <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isLive ? "bg-[#28c840]" : "bg-white/20"}`} />
               </span>
-              <span className="text-[11px] font-mono text-white/25">{isLive ? "live" : "connecting…"}</span>
+              <span className="text-[11px] font-mono text-white/50">{isLive ? "live" : "connecting…"}</span>
             </span>
           </div>
 
           <button onClick={() => refresh(true)}
-            className="flex items-center gap-1.5 text-white/25 hover:text-white/60 transition-colors text-[12px] font-mono">
+            className="flex items-center gap-1.5 text-white/50 hover:text-white/60 transition-colors text-[12px] font-mono">
             <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
             {lastUpdate && (
               <span className="hidden sm:inline" suppressHydrationWarning>
@@ -443,7 +443,7 @@ export default function Dashboard() {
             { label: "Queries today", value: fmt(stats?.queries_today ?? null, n => n.toLocaleString()), sub: "semantic searches" },
             { label: "Current block", value: fmt(stats?.block ?? null, n => `#${n.toLocaleString()}`), sub: "~12s per block" },
           ].map(({ label, value, sub }) => (
-            <div key={label} className="rounded-xl border border-white/[0.06] bg-[#0a0810] px-5 py-4">
+            <div key={label} className="rounded-xl border border-white/[0.12] bg-[#100d1c] px-5 py-4">
               <StatCard label={label} value={value} sub={sub} loading={loading} />
             </div>
           ))}
@@ -452,7 +452,7 @@ export default function Dashboard() {
         {/* Query playground */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-white/25" />
+            <Search className="w-3.5 h-3.5 text-white/50" />
             <h2 className="font-display font-semibold text-[18px] text-white">Query Playground</h2>
           </div>
           <QueryPlayground />
@@ -465,12 +465,12 @@ export default function Dashboard() {
         <MinerTable miners={miners} loading={loading} />
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 pb-8 border-t border-white/[0.06]">
+        <div className="flex items-center justify-between pt-4 pb-8 border-t border-white/[0.12]">
           <span className="text-[11px] font-mono text-white/15">
             engram · netuid {stats?.netuid ?? 450} · bittensor testnet
           </span>
           <a href="https://github.com/Dipraise1/-Engram-" target="_blank" rel="noopener noreferrer"
-            className="text-[11px] font-mono text-white/25 hover:text-white/60 transition-colors flex items-center gap-1">
+            className="text-[11px] font-mono text-white/50 hover:text-white/60 transition-colors flex items-center gap-1">
             github <ExternalLink className="w-3 h-3" />
           </a>
         </div>

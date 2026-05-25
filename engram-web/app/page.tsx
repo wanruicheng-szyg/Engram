@@ -93,14 +93,14 @@ function CliCode({ code }: { code: string }) {
 
 function TermBlock({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl overflow-hidden border border-white/[0.07] ${className}`}>
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0d0b11] border-b border-white/[0.06]">
+    <div className={`rounded-xl overflow-hidden border border-white/[0.14] ${className}`}>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#141020] border-b border-white/[0.12]">
         <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
         <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
         <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
         {title && <span className="ml-2 text-[11px] text-white/25 font-mono tracking-wide">{title}</span>}
       </div>
-      <div className="bg-[#0a0810] px-5 py-4 text-white/55">{children}</div>
+      <div className="bg-[#100d1c] px-5 py-4 text-white/55">{children}</div>
     </div>
   );
 }
@@ -139,18 +139,18 @@ function Navbar() {
   return (
     <>
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled || mobileOpen ? "bg-[#080608]/95 backdrop-blur-xl border-b border-white/[0.06]" : ""
+        scrolled || mobileOpen ? "bg-[#080608]/95 backdrop-blur-xl border-b border-white/[0.12]" : ""
       }`}>
         <div className="max-w-6xl mx-auto px-6 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image src="/logo.png" alt="Engram" width={30} height={30} className="block" />
             <span className="font-semibold text-[15px] tracking-tight text-white font-sans">Engram</span>
-            <span className="text-[10px] font-semibold tracking-[0.12em] uppercase px-2 py-0.5 rounded border border-[#e040fb]/20 text-[#e040fb]/60 ml-0.5 font-mono">
+            <span className="text-[12px] font-semibold tracking-[0.12em] uppercase px-2 py-0.5 rounded border border-[#e040fb]/20 text-[#e040fb]/60 ml-0.5 font-mono">
               v0.1 · testnet
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-8 text-[13px] text-white/35 font-normal">
+          <div className="hidden md:flex items-center gap-8 text-[13px] text-white/65 font-normal">
             {navLinks.map(({ href, label }) =>
               href.startsWith("/") ? (
                 <Link key={href} href={href} className="hover:text-white/70 transition-colors">{label}</Link>
@@ -162,7 +162,7 @@ function Navbar() {
 
           <div className="flex items-center gap-3">
             <a href="https://github.com/Dipraise1/-Engram-" target="_blank" rel="noopener noreferrer"
-              className="text-white/25 hover:text-white/60 transition-colors hidden md:block">
+              className="text-white/50 hover:text-white/80 transition-colors hidden md:block">
               <Github className="w-[17px] h-[17px]" />
             </a>
             <Link href="/dashboard"
@@ -191,7 +191,7 @@ function Navbar() {
                   key={href}
                   href={href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center text-[16px] text-white/60 hover:text-white py-3 border-b border-white/[0.06] transition-colors"
+                  className="flex items-center text-[16px] text-white/60 hover:text-white py-3 border-b border-white/[0.12] transition-colors"
                 >
                   {label}
                 </Link>
@@ -200,14 +200,14 @@ function Navbar() {
                   key={href}
                   href={href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center text-[16px] text-white/60 hover:text-white py-3 border-b border-white/[0.06] transition-colors"
+                  className="flex items-center text-[16px] text-white/60 hover:text-white py-3 border-b border-white/[0.12] transition-colors"
                 >
                   {label}
                 </a>
               )
             )}
           </div>
-          <div className="px-6 py-6 flex items-center gap-4 border-t border-white/[0.06]">
+          <div className="px-6 py-6 flex items-center gap-4 border-t border-white/[0.12]">
             <a href="https://github.com/Dipraise1/-Engram-" target="_blank" rel="noopener noreferrer"
               className="text-white/40 hover:text-white transition-colors">
               <Github className="w-5 h-5" />
@@ -261,7 +261,7 @@ function SMarquee() {
 
 function StatsBadge({ label, value, live }: { label: string; value: string; live?: boolean }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.07]">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.14]">
       {live && (
         <span className="relative flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#28c840] opacity-75" />
@@ -303,7 +303,7 @@ function Hero() {
                 Memory for AI,<br />
                 <span className="gradient-text" style={{ fontStyle: "italic" }}>owned by no one.</span>
               </h1>
-              <p className="text-[17px] text-white/40 leading-relaxed mb-8 max-w-lg font-light">
+              <p className="text-[17px] text-white/72 leading-relaxed mb-8 max-w-lg font-light">
                 Engram is a decentralized vector database on Bittensor. Store embeddings with cryptographic proofs — no AWS, no central authority.
               </p>
 
@@ -329,7 +329,7 @@ function Hero() {
                   Open Dashboard <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
                 <a href="#mine"
-                  className="flex items-center gap-2 text-white/50 font-medium text-[13px] px-6 py-3 rounded-full border border-white/10 hover:border-white/20 hover:text-white/70 transition-all font-sans">
+                  className="flex items-center gap-2 text-white/70 font-medium text-[13px] px-6 py-3 rounded-full border border-white/20 hover:border-white/35 hover:text-white/90 transition-all font-sans">
                   Start Mining <ChevronRight className="w-3.5 h-3.5" />
                 </a>
               </div>
@@ -353,10 +353,10 @@ function Hero() {
 function Strip() {
   const items = ["recall@K scoring", "HMAC-SHA256 proofs", "Kademlia XOR routing", "HNSW indexing", "PyO3 Rust core", "TAO emissions", "content-addressed CIDs", "subnet · netuid 450", "FAISS · Qdrant", "cloud mining · Akash", "x402 payments · USDC", "mine from your phone"];
   return (
-    <div className="border-y border-white/[0.05] overflow-hidden py-2.5 bg-[#080608]">
+    <div className="border-y border-white/[0.09] overflow-hidden py-2.5 bg-[#080608]">
       <div className="flex gap-10 animate-[marquee_35s_linear_infinite] whitespace-nowrap" style={{ width: "max-content" }}>
         {[...items, ...items].map((item, i) => (
-          <span key={i} className="flex items-center gap-3 text-[10px] font-mono tracking-[0.14em] uppercase text-white/18">
+          <span key={i} className="flex items-center gap-3 text-[12px] font-mono tracking-[0.14em] uppercase text-white/18">
             <span className="text-[#e040fb]/40">◆</span>
             {item}
           </span>
@@ -463,12 +463,12 @@ function Protocol() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-end justify-between mb-14">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// how it works</p>
+            <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// how it works</p>
             <h2 className="font-display font-semibold text-[48px] md:text-[60px] text-white leading-[1.0]">
               Four steps.<br />Fully decentralized.
             </h2>
           </div>
-          <p className="hidden md:block text-[13px] text-white/30 max-w-[220px] text-right leading-relaxed font-light">
+          <p className="hidden md:block text-[13px] text-white/58 max-w-[220px] text-right leading-relaxed font-light">
             From raw text to cryptographically verified storage.
           </p>
         </div>
@@ -477,42 +477,42 @@ function Protocol() {
           {STEPS.map((s, i) => (
             <button key={i} onClick={() => setActive(i)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-[12px] font-mono transition-all ${
-                active === i ? "bg-[#1a0f22] text-white border border-[#e040fb]/20" : "text-white/25 hover:text-white/50 hover:bg-white/[0.03]"
+                active === i ? "bg-[#1a0f22] text-white border border-[#e040fb]/35" : "text-white/55 hover:text-white/80 hover:bg-white/[0.05]"
               }`}>
-              <span className={`text-[10px] ${active === i ? "text-[#e040fb]/60" : "text-white/15"}`}>{s.n}</span>
+              <span className={`text-[12px] ${active === i ? "text-[#e040fb]/80" : "text-white/35"}`}>{s.n}</span>
               <span className="hidden sm:inline">{s.title}</span>
             </button>
           ))}
         </div>
 
-        <div className="border border-white/[0.07] rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-3 bg-[#0d0b11] border-b border-white/[0.06]">
+        <div className="border border-white/[0.14] rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-3 bg-[#141020] border-b border-white/[0.12]">
             <div className="flex items-center gap-3">
-              <span className="font-mono text-[10px] text-[#e040fb]/50">{step.n}</span>
-              <span className="w-px h-3 bg-white/10" />
-              <span className="font-mono text-[10px] text-white/30 tracking-wide">{step.tag}</span>
+              <span className="font-mono text-[12px] text-[#e040fb]/80">{step.n}</span>
+              <span className="w-px h-3 bg-white/20" />
+              <span className="font-mono text-[12px] text-white/60 tracking-wide">{step.tag}</span>
             </div>
-            <span className="font-mono text-[10px] text-white/20">{step.file}</span>
+            <span className="font-mono text-[12px] text-white/45">{step.file}</span>
           </div>
 
           <div className="grid md:grid-cols-[1fr_1.3fr]">
-            <div className="p-8 bg-[#0a0810] border-b md:border-b-0 md:border-r border-white/[0.06]">
+            <div className="p-8 bg-[#100d1c] border-b md:border-b-0 md:border-r border-white/[0.12]">
               <h3 className="font-display font-semibold leading-[1.0] text-white mb-5"
                 style={{ fontSize: "clamp(36px, 4vw, 58px)" }}>
                 {step.title}
               </h3>
-              <p className="text-[14px] text-white/45 leading-relaxed mb-7 font-light">{step.summary}</p>
+              <p className="text-[15px] text-white/72 leading-relaxed mb-7 font-light">{step.summary}</p>
               <div className="space-y-3">
                 {step.detail.map((d, i) => (
                   <div key={i} className="flex gap-3">
-                    <span className="font-mono text-[10px] text-[#e040fb]/40 mt-1 flex-shrink-0">→</span>
-                    <span className="text-[13px] text-white/35 leading-relaxed font-light">{d}</span>
+                    <span className="font-mono text-[12px] text-[#e040fb]/70 mt-1 flex-shrink-0">→</span>
+                    <span className="text-[14px] text-white/65 leading-relaxed font-light">{d}</span>
                   </div>
                 ))}
               </div>
-              <div className="flex items-center gap-2 mt-8 pt-6 border-t border-white/[0.05]">
+              <div className="flex items-center gap-2 mt-8 pt-6 border-t border-white/[0.09]">
                 <button onClick={() => setActive(Math.max(0, active - 1))} disabled={active === 0}
-                  className="font-mono text-[11px] text-white/25 hover:text-white/60 disabled:opacity-20 transition-colors px-3 py-1.5 rounded border border-white/[0.06] hover:border-white/10 disabled:cursor-not-allowed">
+                  className="font-mono text-[12px] text-white/55 hover:text-white/85 disabled:opacity-25 transition-colors px-3 py-1.5 rounded border border-white/[0.18] hover:border-white/25 disabled:cursor-not-allowed">
                   ← prev
                 </button>
                 <div className="flex gap-1.5 mx-auto">
@@ -522,18 +522,18 @@ function Protocol() {
                   ))}
                 </div>
                 <button onClick={() => setActive(Math.min(STEPS.length - 1, active + 1))} disabled={active === STEPS.length - 1}
-                  className="font-mono text-[11px] text-white/25 hover:text-white/60 disabled:opacity-20 transition-colors px-3 py-1.5 rounded border border-white/[0.06] hover:border-white/10 disabled:cursor-not-allowed">
+                  className="font-mono text-[12px] text-white/55 hover:text-white/85 disabled:opacity-25 transition-colors px-3 py-1.5 rounded border border-white/[0.18] hover:border-white/25 disabled:cursor-not-allowed">
                   next →
                 </button>
               </div>
             </div>
 
-            <div className="bg-[#0a0810]">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]">
+            <div className="bg-[#100d1c]">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.12]">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-                <span className="ml-2 font-mono text-[11px] text-white/20">{step.file}</span>
+                <span className="ml-2 font-mono text-[12px] text-white/45">{step.file}</span>
               </div>
               <div className="p-6"><PyCode code={step.code} /></div>
             </div>
@@ -548,25 +548,25 @@ function Protocol() {
 
 function Features() {
   return (
-    <section id="features" className="py-24 px-6 border-t border-white/[0.06]">
+    <section id="features" className="py-24 px-6 border-t border-white/[0.12]">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-16">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// capabilities</p>
+            <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// capabilities</p>
             <h2 className="font-display font-semibold text-[48px] md:text-[60px] text-white leading-[1.0]">
               Built different.
             </h2>
           </div>
-          <p className="text-[14px] text-white/35 max-w-xs leading-relaxed md:text-right font-light">
+          <p className="text-[15px] text-white/65 max-w-xs leading-relaxed md:text-right font-light">
             Everything you expect from a vector DB — plus cryptographic guarantees no centralized system can offer.
           </p>
         </div>
 
-        <div className="border border-white/[0.06] rounded-xl overflow-hidden mb-10">
-          <div className="grid grid-cols-[2fr_3fr_1fr] bg-[#0d0b11] border-b border-white/[0.06] px-6 py-3">
-            <span className="text-[10px] font-mono tracking-[0.15em] uppercase text-white/25">Feature</span>
-            <span className="text-[10px] font-mono tracking-[0.15em] uppercase text-white/25">Description</span>
-            <span className="text-[10px] font-mono tracking-[0.15em] uppercase text-white/25">Status</span>
+        <div className="border border-white/[0.12] rounded-xl overflow-hidden mb-10">
+          <div className="grid grid-cols-[2fr_3fr_1fr] bg-[#141020] border-b border-white/[0.12] px-6 py-3">
+            <span className="text-[12px] font-mono tracking-[0.15em] uppercase text-white/55">Feature</span>
+            <span className="text-[12px] font-mono tracking-[0.15em] uppercase text-white/55">Description</span>
+            <span className="text-[12px] font-mono tracking-[0.15em] uppercase text-white/55">Status</span>
           </div>
           {[
             { feat: "Content-Addressed CIDs", desc: "SHA-256 fingerprint per embedding — identical data always maps to identical CID", status: "live", color: "#28c840" },
@@ -579,32 +579,32 @@ function Features() {
             { feat: "SDK / Python Client", desc: "EngramClient — drop-in for Pinecone, Weaviate, or any vector store", status: "live", color: "#28c840" },
             { feat: "LangChain / LlamaIndex", desc: "Native adapters — swap your vector store to Engram in one line", status: "live", color: "#28c840" },
           ].map((row, i) => (
-            <div key={i} className={`grid grid-cols-[2fr_3fr_1fr] px-6 py-4 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${i % 2 === 0 ? "" : "bg-white/[0.01]"}`}>
-              <span className="text-[13px] font-medium text-white/80 font-sans">{row.feat}</span>
-              <span className="text-[13px] text-white/35 leading-relaxed font-light pr-4">{row.desc}</span>
+            <div key={i} className={`grid grid-cols-[2fr_3fr_1fr] px-6 py-4 border-b border-white/[0.08] hover:bg-white/[0.02] transition-colors ${i % 2 === 0 ? "" : "bg-white/[0.01]"}`}>
+              <span className="text-[14px] font-medium text-white font-sans">{row.feat}</span>
+              <span className="text-[14px] text-white/65 leading-relaxed font-light pr-4">{row.desc}</span>
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: row.color }} />
-                <span className="text-[11px] font-mono text-white/30">{row.status}</span>
+                <span className="text-[12px] font-mono text-white/60">{row.status}</span>
               </span>
             </div>
           ))}
         </div>
 
-        <div className="border border-white/[0.06] rounded-xl overflow-hidden">
-          <div className="px-6 py-3 bg-[#0d0b11] border-b border-white/[0.06]">
-            <span className="text-[10px] font-mono tracking-[0.15em] uppercase text-white/25">Scoring Formula — how miners earn TAO</span>
+        <div className="border border-white/[0.12] rounded-xl overflow-hidden">
+          <div className="px-6 py-3 bg-[#141020] border-b border-white/[0.12]">
+            <span className="text-[12px] font-mono tracking-[0.15em] uppercase text-white/60">Scoring Formula — how miners earn TAO</span>
           </div>
-          <div className="px-6 py-5 bg-[#0a0810] grid md:grid-cols-3 gap-6">
+          <div className="px-6 py-5 bg-[#100d1c] grid md:grid-cols-3 gap-6">
             {[
               { weight: "50%", label: "recall@K", desc: "Fraction of correct CIDs returned in top-K query results" },
               { weight: "30%", label: "latency", desc: "Query response time — faster miners score proportionally higher" },
               { weight: "20%", label: "proof_rate", desc: "Fraction of storage challenges answered with a valid HMAC proof" },
             ].map((m) => (
               <div key={m.label} className="flex gap-4">
-                <div className="text-[28px] font-bold text-[#e040fb]/50 leading-none font-display w-14 flex-shrink-0">{m.weight}</div>
+                <div className="text-[28px] font-bold text-[#e040fb]/85 leading-none font-display w-14 flex-shrink-0">{m.weight}</div>
                 <div>
-                  <div className="font-mono text-[13px] text-white/70 mb-1">{m.label}</div>
-                  <div className="text-[12px] text-white/30 leading-relaxed font-light">{m.desc}</div>
+                  <div className="font-mono text-[14px] text-white/90 mb-1">{m.label}</div>
+                  <div className="text-[13px] text-white/62 leading-relaxed font-light">{m.desc}</div>
                 </div>
               </div>
             ))}
@@ -657,11 +657,11 @@ const PHASES = [
 
 function Roadmap() {
   return (
-    <section id="roadmap" className="py-24 px-6 border-t border-white/[0.06]">
+    <section id="roadmap" className="py-24 px-6 border-t border-white/[0.12]">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-16">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// roadmap</p>
+            <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// roadmap</p>
             <h2 className="font-display font-semibold text-[48px] md:text-[60px] text-white leading-[1.0]">
               Where we&apos;re going.
             </h2>
@@ -684,13 +684,13 @@ function Roadmap() {
                   ? "border-[#e040fb]/30 bg-[#0e0913]"
                   : p.status === "done"
                   ? "border-[#28c840]/15 bg-[#0a0e09]"
-                  : "border-white/[0.06] bg-[#0a0810]"
+                  : "border-white/[0.12] bg-[#100d1c]"
               }`}>
                 {/* Phase top bar */}
                 <div className={`flex items-center justify-between px-4 py-3 border-b ${
-                  p.status === "current" ? "border-[#e040fb]/20" : "border-white/[0.06]"
+                  p.status === "current" ? "border-[#e040fb]/20" : "border-white/[0.12]"
                 }`}>
-                  <span className={`font-mono text-[10px] ${
+                  <span className={`font-mono text-[12px] ${
                     p.status === "current" ? "text-[#e040fb]/70" : p.status === "done" ? "text-[#28c840]/60" : "text-white/25"
                   }`}>{p.phase}</span>
                   <span className={`flex items-center justify-center w-5 h-5 rounded-full ${
@@ -710,7 +710,7 @@ function Roadmap() {
                 </div>
 
                 <div className="px-4 py-4">
-                  <div className="font-mono text-[10px] text-white/25 mb-1.5">{p.date}</div>
+                  <div className="font-mono text-[12px] text-white/25 mb-1.5">{p.date}</div>
                   <div className={`font-display font-semibold text-[18px] leading-tight mb-4 ${
                     p.status === "current" ? "text-white" : p.status === "done" ? "text-white/70" : "text-white/40"
                   }`}>{p.title}</div>
@@ -733,7 +733,7 @@ function Roadmap() {
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e040fb] opacity-75" />
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#e040fb]" />
                         </span>
-                        <span className="font-mono text-[10px] text-[#e040fb]/60">in progress</span>
+                        <span className="font-mono text-[12px] text-[#e040fb]/60">in progress</span>
                       </span>
                     </div>
                   )}
@@ -765,11 +765,11 @@ function Roadmap() {
               {/* right column: content */}
               <div className={`pb-8 flex-1 min-w-0 ${i === PHASES.length - 1 ? "pb-0" : ""}`}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`font-mono text-[10px] ${
+                  <span className={`font-mono text-[12px] ${
                     p.status === "current" ? "text-[#e040fb]/70" : p.status === "done" ? "text-[#28c840]/60" : "text-white/25"
                   }`}>{p.phase}</span>
-                  <span className="font-mono text-[10px] text-white/20">·</span>
-                  <span className="font-mono text-[10px] text-white/20">{p.date}</span>
+                  <span className="font-mono text-[12px] text-white/20">·</span>
+                  <span className="font-mono text-[12px] text-white/20">{p.date}</span>
                   {p.status === "current" && (
                     <span className="font-mono text-[9px] text-[#e040fb]/60 bg-[#e040fb]/10 px-1.5 py-0.5 rounded">live</span>
                   )}
@@ -839,11 +839,11 @@ engram query "machine learning future" --top-k 10
 engram status --live --netuid 450`;
 
   return (
-    <section id="sdk" className="py-24 px-6 border-t border-white/[0.06]">
+    <section id="sdk" className="py-24 px-6 border-t border-white/[0.12]">
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-[1fr_1.6fr] gap-16 items-start">
           <div className="md:sticky md:top-24">
-            <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// developer SDK</p>
+            <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// developer SDK</p>
             <h2 className="font-display font-semibold text-[44px] text-white leading-[1.0] mb-5">
               Replace Pinecone<br />in an afternoon.
             </h2>
@@ -851,11 +851,11 @@ engram status --live --netuid 450`;
               One Python client. Works with any embedding model. No API key, no vendor lock-in.
             </p>
 
-            <div className="border border-white/[0.06] rounded-xl overflow-hidden mb-8">
-              <div className="grid grid-cols-3 bg-[#0d0b11] border-b border-white/[0.06] px-4 py-2.5">
-                <span className="text-[10px] font-mono text-white/25"></span>
-                <span className="text-[10px] font-mono text-white/25 text-center">Pinecone</span>
-                <span className="text-[10px] font-mono text-[#e040fb]/50 text-center">Engram</span>
+            <div className="border border-white/[0.12] rounded-xl overflow-hidden mb-8">
+              <div className="grid grid-cols-3 bg-[#141020] border-b border-white/[0.12] px-4 py-2.5">
+                <span className="text-[12px] font-mono text-white/25"></span>
+                <span className="text-[12px] font-mono text-white/25 text-center">Pinecone</span>
+                <span className="text-[12px] font-mono text-[#e040fb]/50 text-center">Engram</span>
               </div>
               {[
                 ["Open source", "✗", "✓"],
@@ -865,7 +865,7 @@ engram status --live --netuid 450`;
                 ["Self-hostable", "✗", "✓"],
                 ["TAO incentives", "✗", "✓"],
               ].map(([label, pine, eng]) => (
-                <div key={label} className="grid grid-cols-3 px-4 py-2.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                <div key={label} className="grid grid-cols-3 px-4 py-2.5 border-b border-white/[0.08] hover:bg-white/[0.02] transition-colors">
                   <span className="text-[12px] text-white/40 font-light">{label}</span>
                   <span className="text-[12px] text-white/20 text-center">{pine}</span>
                   <span className="text-[12px] text-[#28c840]/70 text-center">{eng}</span>
@@ -903,11 +903,11 @@ engram status --live --netuid 450`;
 
 function Mine() {
   return (
-    <section id="mine" className="py-24 px-6 border-t border-white/[0.06]">
+    <section id="mine" className="py-24 px-6 border-t border-white/[0.12]">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-16">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// participate</p>
+            <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// participate</p>
             <h2 className="font-display font-semibold text-[48px] md:text-[60px] text-white leading-[1.0]">
               Earn TAO.<br />Run the network.
             </h2>
@@ -934,7 +934,7 @@ function Mine() {
               desc: "Score miners on recall@K, latency, and proof rate. Set weights on-chain.",
               specs: [["RAM", "8 GB min"], ["Storage", "20 GB SSD"], ["Stake", "TAO required"], ["Uptime", "Always-on"]],
               featured: false,
-              highlight: "border-white/[0.06] bg-[#0a0810]",
+              highlight: "border-white/[0.12] bg-[#100d1c]",
               badgeColor: "text-white/25",
             },
             {
@@ -952,12 +952,12 @@ function Mine() {
               desc: "Integrate Engram as your vector store using the Python SDK or CLI.",
               specs: [["Install", "pip install engram-subnet"], ["Models", "Any embedding"], ["Access", "Free testnet"], ["Lang", "Python 3.10+"]],
               featured: false,
-              highlight: "border-white/[0.06] bg-[#0a0810]",
+              highlight: "border-white/[0.12] bg-[#100d1c]",
               badgeColor: "text-white/25",
             },
           ].map((r) => (
             <div key={r.role} className={`border rounded-xl overflow-hidden ${r.highlight}`}>
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.12]">
                 <span className="text-[14px] font-semibold text-white font-sans">{r.role}</span>
                 <span className={`font-mono text-[11px] ${r.badgeColor}`}>{r.badge}</span>
               </div>
@@ -966,8 +966,8 @@ function Mine() {
                 <div className="space-y-2">
                   {r.specs.map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[10px] text-white/25 uppercase tracking-wide flex-shrink-0">{k}</span>
-                      <span className="font-mono text-[10px] text-white/50 text-right">{v}</span>
+                      <span className="font-mono text-[12px] text-white/25 uppercase tracking-wide flex-shrink-0">{k}</span>
+                      <span className="font-mono text-[12px] text-white/50 text-right">{v}</span>
                     </div>
                   ))}
                 </div>
@@ -1004,12 +1004,12 @@ python3.13 -m venv .venv
 .venv/bin/python neurons/miner.py`,
             },
           ].map((s) => (
-            <div key={s.step} className="border border-white/[0.06] rounded-xl overflow-hidden">
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-[#0d0b11] border-b border-white/[0.06]">
-                <span className="font-mono text-[10px] text-[#e040fb]/50">{s.step}</span>
-                <span className="font-mono text-[10px] text-white/30">{s.label}</span>
+            <div key={s.step} className="border border-white/[0.12] rounded-xl overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-[#141020] border-b border-white/[0.12]">
+                <span className="font-mono text-[12px] text-[#e040fb]/50">{s.step}</span>
+                <span className="font-mono text-[12px] text-white/30">{s.label}</span>
               </div>
-              <div className="bg-[#0a0810] px-4 py-4">
+              <div className="bg-[#100d1c] px-4 py-4">
                 <CliCode code={s.code} />
               </div>
             </div>
@@ -1035,11 +1035,11 @@ python3.13 -m venv .venv
 
 function CloudMine() {
   return (
-    <section id="cloud-mine" className="py-24 px-6 border-t border-white/[0.06]">
+    <section id="cloud-mine" className="py-24 px-6 border-t border-white/[0.12]">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-16">
           <div>
-            <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#06b6d4]/50 mb-3">// cloud mining</p>
+            <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[#06b6d4]/50 mb-3">// cloud mining</p>
             <h2 className="font-display font-semibold text-[48px] md:text-[60px] text-white leading-[1.0]">
               Mine from<br />your phone.
             </h2>
@@ -1081,10 +1081,10 @@ function CloudMine() {
               <div key={step.n} className="flex gap-5 group">
                 <div className="flex flex-col items-center gap-1">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center border border-[#06b6d4]/20 bg-[#06b6d4]/5 flex-shrink-0">
-                    <span className="font-mono text-[10px] text-[#06b6d4]/70">{step.n}</span>
+                    <span className="font-mono text-[12px] text-[#06b6d4]/70">{step.n}</span>
                   </div>
                 </div>
-                <div className="pb-4 border-b border-white/[0.04] flex-1 group-last:border-0">
+                <div className="pb-4 border-b border-white/[0.08] flex-1 group-last:border-0">
                   <div className="font-semibold text-[14px] text-white mb-1 font-sans">{step.title}</div>
                   <div className="text-[13px] text-white/35 leading-relaxed font-light">{step.desc}</div>
                 </div>
@@ -1097,7 +1097,7 @@ function CloudMine() {
                 { tier: "Standard", cpu: "2 vCPU", ram: "4 GB", price: "~$0.20/hr" },
                 { tier: "Pro", cpu: "4 vCPU", ram: "8 GB", price: "~$0.36/hr" },
               ].map((t) => (
-                <div key={t.tier} className="border border-white/[0.06] rounded-xl px-4 py-3 bg-[#040e10]">
+                <div key={t.tier} className="border border-white/[0.12] rounded-xl px-4 py-3 bg-[#040e10]">
                   <div className="font-mono text-[11px] text-[#06b6d4]/70 mb-1.5">{t.tier}</div>
                   <div className="text-[12px] font-semibold text-white mb-1">{t.price}</div>
                   <div className="text-[11px] text-white/30">{t.cpu} · {t.ram}</div>
@@ -1108,8 +1108,8 @@ function CloudMine() {
 
           {/* Right: terminal flow */}
           <div className="space-y-3">
-            <div className="rounded-xl overflow-hidden border border-white/[0.07]">
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-[#040e10] border-b border-white/[0.06]">
+            <div className="rounded-xl overflow-hidden border border-white/[0.14]">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[#040e10] border-b border-white/[0.12]">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
@@ -1128,15 +1128,15 @@ function CloudMine() {
             </div>
 
             <div className="border border-[#06b6d4]/15 rounded-xl px-5 py-4 bg-[#040e10]">
-              <div className="font-mono text-[10px] text-[#06b6d4]/50 mb-3 uppercase tracking-widest">Security Model</div>
+              <div className="font-mono text-[12px] text-[#06b6d4]/50 mb-3 uppercase tracking-widest">Security Model</div>
               {[
                 ["Private key", "Stays in device secure enclave — never sent to gateway"],
                 ["Payment", "On-chain USDC receipt verified by Dexter facilitator"],
                 ["Auth", "Every gateway request signed with your sr25519 hotkey"],
                 ["Memory", "Namespace-isolated — only your hotkey can access your data"],
               ].map(([k, v]) => (
-                <div key={k} className="flex items-start gap-3 py-2 border-b border-white/[0.04] last:border-0">
-                  <span className="text-[#06b6d4]/50 font-mono text-[10px] mt-0.5 flex-shrink-0">→</span>
+                <div key={k} className="flex items-start gap-3 py-2 border-b border-white/[0.08] last:border-0">
+                  <span className="text-[#06b6d4]/50 font-mono text-[12px] mt-0.5 flex-shrink-0">→</span>
                   <div>
                     <span className="text-[12px] font-semibold text-white/80">{k}</span>
                     <span className="text-[12px] text-white/30 font-light ml-2">{v}</span>
@@ -1179,10 +1179,10 @@ function XIcon({ className }: { className?: string }) {
 
 function Community() {
   return (
-    <section id="community" className="py-24 px-6 border-t border-white/[0.06]">
+    <section id="community" className="py-24 px-6 border-t border-white/[0.12]">
       <div className="max-w-6xl mx-auto">
         <div className="mb-14">
-          <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// community</p>
+          <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[#e040fb]/50 mb-3">// community</p>
           <h2 className="font-display font-semibold text-[48px] md:text-[60px] text-white leading-[1.0]">
             Building in public.<br />
             <span className="text-white/40">Join us.</span>
@@ -1214,7 +1214,7 @@ function Community() {
           {/* Right column: GitHub + Twitter */}
           <div className="flex flex-col gap-4">
             <a href="https://github.com/Dipraise1/-Engram-" target="_blank" rel="noopener noreferrer"
-              className="flex-1 rounded-xl border border-white/[0.07] bg-[#0a0810] p-6 hover:border-white/[0.12] transition-colors group">
+              className="flex-1 rounded-xl border border-white/[0.14] bg-[#100d1c] p-6 hover:border-white/[0.12] transition-colors group">
               <div className="flex items-center justify-between mb-4">
                 <Github className="w-7 h-7 text-white/60 group-hover:text-white/80 transition-colors" />
                 <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors" />
@@ -1227,7 +1227,7 @@ function Community() {
             </a>
 
             <a href="https://x.com" target="_blank" rel="noopener noreferrer"
-              className="flex-1 rounded-xl border border-white/[0.07] bg-[#0a0810] p-6 hover:border-white/[0.12] transition-colors group">
+              className="flex-1 rounded-xl border border-white/[0.14] bg-[#100d1c] p-6 hover:border-white/[0.12] transition-colors group">
               <div className="flex items-center justify-between mb-4">
                 <XIcon className="w-6 h-6 text-white/60 group-hover:text-white/80 transition-colors" />
                 <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors" />
@@ -1248,9 +1248,9 @@ function Community() {
 
 function CTA() {
   return (
-    <section className="py-24 px-6 border-t border-white/[0.06]">
+    <section className="py-24 px-6 border-t border-white/[0.12]">
       <div className="max-w-6xl mx-auto">
-        <div className="border border-white/[0.07] rounded-2xl px-8 py-12 md:px-14 flex flex-col md:flex-row items-start md:items-center justify-between gap-10 bg-[#0a0810]">
+        <div className="border border-white/[0.14] rounded-2xl px-8 py-12 md:px-14 flex flex-col md:flex-row items-start md:items-center justify-between gap-10 bg-[#100d1c]">
           <div className="flex items-center gap-5">
             <Image src="/logo.png" alt="Engram" width={56} height={56} className="block flex-shrink-0" />
             <div>
@@ -1286,7 +1286,7 @@ function CTA() {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/[0.06] py-8 px-6">
+    <footer className="border-t border-white/[0.12] py-8 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-3">
@@ -1294,7 +1294,7 @@ function Footer() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-semibold text-white font-sans">Engram</span>
-                <span className="font-mono text-[10px] text-white/20">v0.1.0</span>
+                <span className="font-mono text-[12px] text-white/20">v0.1.0</span>
               </div>
               <p className="text-[11px] text-white/20 font-mono mt-0.5">decentralized vector database · bittensor subnet 450</p>
             </div>
