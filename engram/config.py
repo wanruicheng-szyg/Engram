@@ -67,6 +67,14 @@ ATTESTATION_STAKE_REFRESH_SECS: int = 600
 # ── Anti-spam ──────────────────────────────────────────────────────────────────
 MIN_INGEST_STAKE_TAO: float = float(os.getenv("MIN_INGEST_STAKE_TAO", "0.001"))
 
+# ── Validator consensus ────────────────────────────────────────────────────────
+# Validators share signed score vectors; weight-setting is gated on quorum.
+# CONSENSUS_MIN_VALIDATORS=0 disables quorum (testnet / single-validator mode).
+CONSENSUS_ENABLED: bool = os.getenv("CONSENSUS_ENABLED", "false").lower() == "true"
+CONSENSUS_MIN_VALIDATORS: int = int(os.getenv("CONSENSUS_MIN_VALIDATORS", "0"))
+CONSENSUS_SCORE_TOLERANCE: float = float(os.getenv("CONSENSUS_SCORE_TOLERANCE", "0.15"))
+CONSENSUS_VECTOR_TTL_SECS: int = int(os.getenv("CONSENSUS_VECTOR_TTL_SECS", "600"))
+
 # ── Slash cooldown ─────────────────────────────────────────────────────────────
 # Slashed miners stay at weight=0 for this many blocks before re-evaluation.
 # 7200 blocks ≈ 24 hours at 12s/block (Bittensor mainnet cadence).

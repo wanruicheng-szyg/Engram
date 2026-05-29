@@ -70,10 +70,13 @@ class _PatchedTimerContext(_aiohttp_helpers.TimerContext):
 _aiohttp_helpers.TimerContext = _PatchedTimerContext
 from loguru import logger
 
+from pathlib import Path
+
 from engram.config import CHALLENGE_INTERVAL_SECS, RECALL_K, SUBNET_VERSION
 from engram.miner.auth import sign_request
 from engram.relay.client import RelayClient
 from engram.validator.challenge import ChallengeDispatcher
+from engram.validator.consensus import ConsensusEngine
 from engram.validator.ground_truth import GroundTruthManager
 from engram.validator.reward import RewardManager
 from engram.validator.scorer import recall_at_k
@@ -311,6 +314,11 @@ async def run() -> None:
     )
     reward_manager = RewardManager(subtensor=subtensor, wallet=wallet, netuid=netuid)
     relay_client = RelayClient.from_env(keypair=wallet.hotkey if wallet else None)
+    _val_hotkey = wallet.hotkey.ss58_address if wallet else "local"
+    consensus = ConsensusEngine(
+        validator_hotkey=_val_hotkey,
+        db_path=Path("data/consensus.db"),
+    )
 
     for cid in ground_truth.all_cids():
         challenge_dispatcher.register_cid(cid)
@@ -334,6 +342,8 @@ async def run() -> None:
     last_weight_set = 0.0
     last_challenge = 0.0
     last_repair = 0.0
+    _block = 0
+    _val_uid = 0
 
     try:
         while True:
@@ -472,6 +482,12 @@ async def run() -> None:
             # ── Weight setting ────────────────────────────────────────────────
             if now - last_weight_set >= WEIGHT_INTERVAL:
                 last_weight_set = now
+                try:
+                    _block = subtensor.get_current_block() if subtensor else 0
+                    _val_uid = int(metagraph.hotkeys.index(wallet.hotkey.ss58_address)) if wallet and hasattr(metagraph, "hotkeys") else 0
+                except Exception:
+                    _block, _val_uid = 0, 0
+
                 proof_rates: dict[int, float] = {}
                 slashed_uids: set[int] = set()
                 for uid in uids:
@@ -487,19 +503,36 @@ async def run() -> None:
                             )
                     else:
                         proof_rates[int(uid)] = 0.0
-                reward_manager.set_weights(
-                    metagraph=metagraph,
-                    recall_scores=recall_scores,
-                    latency_scores=latency_scores,
-                    proof_rates=proof_rates,
-                    slashed_uids=slashed_uids,
-                    current_block=_block,
-                )
-                try:
-                    _block = subtensor.get_current_block() if subtensor else 0
-                    _val_uid = int(metagraph.hotkeys.index(wallet.hotkey.ss58_address)) if wallet and hasattr(metagraph, "hotkeys") else 0
-                except Exception:
-                    _block, _val_uid = 0, 0
+
+                # Consensus: share our recall vector and aggregate peers' vectors
+                # before setting weights. When CONSENSUS_MIN_VALIDATORS=0 (default)
+                # has_quorum() always returns True — no-op for single-validator testnet.
+                consensus.create_vector(recall_scores, block=_block, keypair=_keypair)
+                if consensus.has_quorum(_block):
+                    aggregated_recall = consensus.aggregate(_block)
+                    if consensus.peer_count(_block) > 0:
+                        logger.info(
+                            f"Consensus: using aggregated recall | "
+                            f"validators={consensus.peer_count(_block) + 1} | "
+                            f"block={_block}"
+                        )
+                else:
+                    logger.warning(
+                        f"Consensus: quorum not reached for block={_block} — "
+                        "skipping weight set this round"
+                    )
+                    aggregated_recall = None
+
+                if aggregated_recall is not None:
+                    reward_manager.set_weights(
+                        metagraph=metagraph,
+                        recall_scores=aggregated_recall,
+                        latency_scores=latency_scores,
+                        proof_rates=proof_rates,
+                        slashed_uids=slashed_uids,
+                        current_block=_block,
+                    )
+
                 relay_client.emit(
                     recall_scores=recall_scores,
                     latency_scores=latency_scores,
