@@ -28,6 +28,14 @@ DEFAULT_TOP_K: int = 10
 # ── Replication ────────────────────────────────────────────────────────────────
 REPLICATION_FACTOR: int = 3
 
+# ── Erasure coding (k, n) — replaces 3× replication for storage efficiency ────
+# ERASURE_ENABLED=true switches ingest to shard mode; validators must also enable.
+# k data shards + (n-k) parity shards; any k of n reconstruct the embedding.
+# Default k=3, n=5 → 1.67× storage overhead vs 3× for pure replication.
+ERASURE_ENABLED: bool = os.getenv("ERASURE_ENABLED", "false").lower() == "true"
+ERASURE_K: int = int(os.getenv("ERASURE_K", "3"))   # data shards
+ERASURE_N: int = int(os.getenv("ERASURE_N", "5"))   # total shards
+
 # ── Scoring Weights ────────────────────────────────────────────────────────────
 SCORE_ALPHA: float = 0.50   # recall@K
 SCORE_BETA: float = 0.30    # latency
